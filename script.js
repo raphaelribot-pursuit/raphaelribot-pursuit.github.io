@@ -1,6 +1,6 @@
 /* ============================================================
    RAPHAEL RIBOT — script.js
-   Smooth scroll + scroll-reveal + gallery lightbox
+   Smooth scroll + scroll-reveal + gallery detail panel
    ============================================================ */
 
 /* ── Apple-style ease-out scroll ── */
@@ -28,10 +28,7 @@
         const maxScroll = Math.max(0, root.scrollHeight - window.innerHeight);
         const endY = clamp(targetY, 0, maxScroll);
 
-        if (reducedMotion) {
-            window.scrollTo(0, endY);
-            return;
-        }
+        if (reducedMotion) { window.scrollTo(0, endY); return; }
 
         const startY = window.scrollY;
         const delta  = endY - startY;
@@ -44,29 +41,23 @@
         function step(now) {
             const elapsed = now - t0;
             const t       = clamp(elapsed / duration, 0, 1);
-            const eased   = easeOutQuart(t);
-            window.scrollTo(0, startY + delta * eased);
-            if (t < 1) {
-                scrollRafId = requestAnimationFrame(step);
-            } else {
-                scrollRafId = null;
-            }
+            window.scrollTo(0, startY + delta * easeOutQuart(t));
+            if (t < 1) { scrollRafId = requestAnimationFrame(step); }
+            else { scrollRafId = null; }
         }
-
         scrollRafId = requestAnimationFrame(step);
     }
 
     function scrollToElement(el) {
         const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-        const paddingTop    = parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop) || 0;
-        const rect          = el.getBoundingClientRect();
-        const y             = rect.top + window.scrollY - paddingTop;
+        const paddingTop = parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop) || 0;
+        const y = el.getBoundingClientRect().top + window.scrollY - paddingTop;
         scrollToYAnimated(y, reducedMotion);
     }
 
     document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
         anchor.addEventListener("click", function (e) {
-            const id     = this.getAttribute("href");
+            const id = this.getAttribute("href");
             if (!id || id === "#") return;
             const target = document.querySelector(id);
             if (!target) return;
@@ -76,7 +67,7 @@
     });
 })();
 
-/* ── Scroll-reveal (IntersectionObserver) ── */
+/* ── Scroll-reveal ── */
 (function () {
     const sections = document.querySelectorAll("section:not(#about)");
     sections.forEach(s => s.classList.add("reveal"));
@@ -97,49 +88,69 @@
         },
         { threshold: 0.08 }
     );
-
     sections.forEach(s => observer.observe(s));
 })();
 
-/* ── Gallery Lightbox ── */
+/* ── Gallery Detail Panel ── */
 (function () {
-    const lightbox  = document.createElement("div");
-    lightbox.id     = "lightbox";
+    const panel          = document.getElementById("detail-panel");
+    const closeBtn       = document.getElementById("detail-close");
+    const detailImg      = document.getElementById("detail-img");
+    const detailVideo    = document.getElementById("detail-video");
+    const detailVideoSrc = document.getElementById("detail-video-src");
+    const detailCategory = document.getElementById("detail-category");
+    const detailTitle    = document.getElementById("detail-title");
+    const detailClient   = document.getElementById("detail-client");
+    const detailYear     = document.getElementById("detail-year");
+    const detailDesc     = document.getElementById("detail-description");
 
-    const img       = document.createElement("img");
-    img.id          = "lightbox-img";
-    img.alt         = "";
+    if (!panel) return;
 
-    const closeHint = document.createElement("span");
-    closeHint.className   = "lightbox-close";
-    closeHint.textContent = "Click to close";
+    function openPanel(item) {
+        const isVideo = !!item.querySelector("video");
+        const d = item.dataset;
 
-    lightbox.appendChild(img);
-    lightbox.appendChild(closeHint);
-    document.body.appendChild(lightbox);
+        detailCategory.innerHTML  = d.category    || "";
+        detailTitle.textContent   = d.title        || "";
+        detailClient.innerHTML    = d.client        || "";
+        detailYear.textContent    = d.year          || "";
+        detailDesc.textContent    = d.description   || "";
 
-    /* Open on gallery image click — exclude videos */
-    document.querySelectorAll(".gallery-item img").forEach((galleryImg) => {
-        galleryImg.style.cursor = "zoom-in";
-        galleryImg.addEventListener("click", (e) => {
-            e.stopPropagation();
-            img.src = galleryImg.src;
-            lightbox.classList.add("open");
-            document.body.style.overflow = "hidden";
-        });
-    });
-
-    /* Close on lightbox click */
-    lightbox.addEventListener("click", () => {
-        lightbox.classList.remove("open");
-        document.body.style.overflow = "";
-    });
-
-    /* Close on Escape */
-    document.addEventListener("keydown", (e) => {
-        if (e.key === "Escape") {
-            lightbox.classList.remove("open");
-            document.body.style.overflow = "";
+        if (isVideo) {
+            const source = item.querySelector("source");
+            detailImg.style.display   = "none";
+            detailVideo.style.display = "block";
+            detailVideoSrc.src = source ? source.src : "";
+            detailVideo.load();
+            detailVideo.play();
+        } else {
+            const img = item.querySelector("img");
+            detailVideo.style.display = "none";
+            detailVideo.pause();
+            detailImg.style.display = "block";
+            detailImg.src = img ? img.src : "";
+            detailImg.alt = img ? img.alt : "";
         }
+
+        panel.classList.add("open");
+        panel.scrollTop = 0;
+        document.body.style.overflow = "hidden";
+    }
+
+    function closePanel() {
+        panel.classList.remove("open");
+        document.body.style.overflow = "";
+        detailVideo.pause();
+    }
+
+    document.querySelectorAll(".gallery-item").forEach(item => {
+        item.style.cursor = "pointer";
+        item.addEventListener("click", () => openPanel(item));
+    });
+
+    closeBtn.addEventListener("click", closePanel);
+
+    document.addEventListener("keydown", e => {
+        if (e.key === "Escape" && panel.classList.contains("open")) closePanel();
     });
 })();

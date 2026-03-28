@@ -706,3 +706,204 @@ footer {
         gap: 1.25rem;
     }
 }
+
+/* ── GALLERY DETAIL PANEL ── */
+
+/* ── GALLERY DETAIL PANEL ── */
+#detail-panel {
+    position: fixed;
+    inset: 0;
+    background: var(--black);
+    z-index: 200;
+    overflow-y: auto;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(24px);
+    transition: opacity 0.4s ease, transform 0.4s ease;
+    text-align: left;
+}
+
+#detail-panel.open {
+    opacity: 1;
+    pointer-events: all;
+    transform: translateY(0);
+}
+
+#detail-close {
+    position: fixed;
+    top: 1.5rem;
+    right: var(--gutter);
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    background: none;
+    border: 0.5px solid var(--rule-med);
+    padding: 0.4rem 0.9rem;
+    cursor: pointer;
+    z-index: 210;
+    transition: border-color 0.2s, background 0.2s;
+}
+
+#detail-close:hover {
+    border-color: var(--cream-dim);
+    background: rgba(255,255,255,0.04);
+}
+
+.close-label {
+    font-family: "Archivo", sans-serif;
+    font-size: 0.62rem;
+    font-weight: 400;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--cream-muted);
+}
+
+.close-key {
+    font-family: "Archivo", sans-serif;
+    font-size: 0.55rem;
+    letter-spacing: 0.1em;
+    color: var(--cream-dim);
+    border: 0.5px solid var(--rule-med);
+    padding: 1px 5px;
+}
+
+/* The inner wrapper fills the panel and splits into two columns */
+.detail-inner {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    min-height: 100vh;
+}
+
+.detail-media {
+    flex: 0 0 62%;
+    width: 62%;
+    background: #0a0a0a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    min-height: 100vh;
+}
+
+#detail-img,
+#detail-video {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+    max-height: 100vh;
+}
+
+/* Info column: fixed width, text constrained within it */
+.detail-info {
+    flex: 0 0 38%;
+    width: 38%;
+    box-sizing: border-box;
+    padding: 6rem 2.5rem 4rem 2.5rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    border-left: 1px solid var(--rule);
+    overflow: hidden;
+}
+
+.detail-category {
+    font-family: "Archivo", sans-serif;
+    font-size: 0.6rem;
+    font-weight: 400;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--gold);
+    display: block;
+    margin-bottom: 1rem;
+}
+
+.detail-title {
+    font-family: "Syne", sans-serif;
+    font-weight: 800;
+    font-size: clamp(1.4rem, 2.2vw, 2.2rem);
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+    color: var(--cream);
+    margin: 0 0 2rem;
+    white-space: normal;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    word-break: break-word;
+    hyphens: auto;
+    max-width: 100%;
+    display: block;
+}
+
+.detail-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    margin-bottom: 2.5rem;
+    padding-bottom: 2.5rem;
+    border-bottom: 1px solid var(--rule);
+}
+
+.detail-meta-row {
+    display: flex;
+    gap: 1.5rem;
+    align-items: baseline;
+}
+
+.detail-meta-label {
+    font-size: 0.58rem;
+    font-weight: 400;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--cream-dim);
+    min-width: 3.5rem;
+    flex-shrink: 0;
+}
+
+.detail-meta-value {
+    font-family: "Archivo", sans-serif;
+    font-size: 0.82rem;
+    font-weight: 300;
+    color: var(--cream-muted);
+    line-height: 1.5;
+    word-break: break-word;
+}
+
+.detail-description {
+    font-size: 0.88rem;
+    font-weight: 300;
+    line-height: 1.9;
+    color: var(--cream-muted);
+    margin: 0;
+    word-break: break-word;
+    overflow-wrap: break-word;
+}
+
+/* ── Responsive: stack on small screens ── */
+@media (max-width: 860px) {
+    .detail-inner {
+        flex-direction: column;
+    }
+
+    .detail-media {
+        flex: none;
+        width: 100%;
+        min-height: 55vw;
+        max-height: 55vw;
+    }
+
+    #detail-img,
+    #detail-video {
+        object-fit: cover;
+        max-height: 55vw;
+    }
+
+    .detail-info {
+        flex: none;
+        width: 100%;
+        padding: 2.5rem 1.5rem 4rem;
+        border-left: none;
+        border-top: 1px solid var(--rule);
+    }
+}
