@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unified Patient Record | v5.7 Stability Build</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#F5F4F0;--surface:#FFFFFF;--border:#DDDBD4;--border-strong:#B8B5AC;
+    --text-primary:#1A1917;--text-secondary:#6B6860;--text-muted:#9E9B94;
+    --accent:#1A4B6E;--accent-light:#E8F0F7;--accent-mid:#3B7AAF;
+    --danger:#8B2020;--danger-light:#FDF0F0;
+    --warning:#7A5A10;--warning-light:#FDF8EC;
+    --success:#1A5C35;--success-light:#EEF7F2;
+    --mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif;
+    --radius:6px;--radius-lg:10px;
+  }
+  [data-theme="dark"]{
+    --bg:#111210;--surface:#1C1E1B;--border:#2E312C;--border-strong:#444840;
+    --text-primary:#E8E6DF;--text-secondary:#9A9990;--text-muted:#5E6059;
+    --accent:#2A6496;--accent-light:#162533;--accent-mid:#5B9FD4;
+  }
+  
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:var(--sans);background:var(--bg);color:var(--text-primary);font-size:13px;line-height:1.5;min-height:100vh;}
+
+  /* UI Framework */
+  .app-header{background:var(--accent);color:white;padding:0 32px;display:flex;align-items:center;justify-content:space-between;height:52px;position:sticky;top:0;z-index:500;}
+  .pt-switcher select { background: rgba(0,0,0,0.2); color: white; border: 1px solid rgba(255,255,255,0.3); border-radius: 4px; padding: 4px 8px; font-size: 12px; cursor: pointer; outline: none; }
+  .tab-nav{background:var(--surface);border-bottom:1px solid var(--border);padding:0 32px;display:flex;gap:4px;position:sticky;top:52px;z-index:450;}
+  .tab-btn{font-size:12px;font-weight:600;padding:14px 20px 12px;border:none;background:transparent;color:var(--text-muted);cursor:pointer;border-bottom:2px solid transparent;text-transform:uppercase;}
+  .tab-btn.active{color:var(--accent-mid);border-bottom-color:var(--accent-mid);}
+
+  /* Headers & Drawers */
+  .pt-summary-bar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 24px 32px; display: grid; grid-template-columns: 1.5fr 1fr 1fr auto; gap: 32px; align-items: center; }
+  #drawerContainer { overflow: hidden; transition: max-height 0.4s ease-in-out; max-height: 0; background: var(--bg); border-bottom: 1px solid transparent; }
+  #drawerContainer.open { max-height: 500px; border-bottom-color: var(--border); padding: 24px 32px; }
+
+  /* Grid System */
+  .main-view { display: none; }
+  .main-view.active { display: block; }
+  .content-pad { padding: 32px; max-width: 1200px; margin: 0 auto; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+
+  .section-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; margin-bottom: 24px; }
+  .section-header { padding: 12px 20px; border-bottom: 1px solid var(--border); background: var(--bg); display: flex; justify-content: space-between; align-items: center; }
+  .section-title { font-weight: 600; font-size: 11px; text-transform: uppercase; color: var(--text-secondary); }
+
+  /* List Entries */
+  .entry { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: flex-start; }
+  .entry:last-child { border-bottom: none; }
+  .entry-title { font-weight: 600; font-size: 14px; color: var(--accent); }
+  .entry-sub { font-size: 12px; color: var(--text-secondary); }
+  .entry-meta { font-family: var(--mono); font-size: 10px; color: var(--text-muted); margin-top: 6px; text-transform: uppercase; }
+
+  /* Buttons & Forms */
+  .btn-sm { padding: 4px 10px; border-radius: 4px; border: 1px solid var(--border); background: var(--surface); cursor: pointer; font-size: 10px; font-weight: 600; font-family: var(--sans); }
+  .btn-add { color: var(--accent); border-color: var(--accent); background: var(--accent-light); }
+  .btn-primary { background: var(--accent); color: white; border: none; padding: 8px 16px; border-radius: 4px; font-weight: 600; }
+  
+  .form-group label { display: block; font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 4px; }
+  input, select { width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px; font-family: var(--sans); background: var(--surface); }
+
+  .tag { font-family: var(--mono); font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 4px; background: var(--accent-light); color: var(--accent); text-transform: uppercase; }
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <div style="font-family: var(--mono); font-size: 12px;">◈ UNIFIED_RECORD_v5.7</div>
+  <div class="pt-switcher">
+    <select id="patientSwitcher" onchange="app.switchContext(this.value)"></select>
+  </div>
+  <button class="btn-sm" style="color:white; background:transparent; border-color:rgba(255,255,255,0.3);" onclick="app.toggleTheme()">🌓 MODE</button>
+</header>
+
+<nav class="tab-nav">
+  <button class="tab-btn active" id="btn-clinician" onclick="app.showTab('clinician')">🩺 Record</button>
+  <button class="tab-btn" id="btn-history" onclick="app.showTab('history')">⟳ History</button>
+  <button class="tab-btn" id="btn-intake" onclick="app.showTab('intake')">📝 Intake</button>
+</nav>
+
+<div id="view-clinician" class="main-view active">
+  <div class="pt-summary-bar">
+    <div>
+      <h1 id="dispName" style="font-size: 26px; font-weight: 500;">--</h1>
+      <div id="dispMRN" style="font-family: var(--mono); color: var(--text-muted); font-size: 11px;">--</div>
+    </div>
+    <div style="border-left: 1px solid var(--border); padding-left: 20px;">
+      <label style="font-size: 10px; font-weight: 700; color: var(--text-muted);">GENDER / DOB</label>
+      <div style="font-size: 13px;"><span id="dispGender">--</span> • <span id="dispDOB">--</span></div>
+    </div>
+    <div style="border-left: 1px solid var(--border); padding-left: 20px;">
+      <label style="font-size: 10px; font-weight: 700; color: var(--text-muted);">PRIMARY CARE</label>
+      <div id="dispPCP" style="font-size: 13px;">--</div>
+    </div>
+    <button class="btn-sm" onclick="app.openDrawer('profile')">✎ Edit Info</button>
+  </div>
+
+  <div id="drawerContainer">
+    <div id="drawerContent"></div>
+  </div>
+
+  <div class="content-pad">
+    <div class="grid">
+      <div class="section-card">
+        <div class="section-header"><span class="section-title">Medications & Allergies</span><button class="btn-sm btn-add" onclick="app.openDrawer('meds')">+ Add</button></div>
+        <div id="medList"></div>
+      </div>
+      <div class="section-card">
+        <div class="section-header"><span class="section-title">Diagnoses & Conditions</span><button class="btn-sm btn-add" onclick="app.openDrawer('dxs')">+ Add</button></div>
+        <div id="dxList"></div>
+      </div>
+      <div class="section-card span-full">
+        <div class="section-header"><span class="section-title">Visit History</span><button class="btn-sm btn-add" onclick="app.openDrawer('visits')">+ Add</button></div>
+        <div id="visitList"></div>
+      </div>
+      <div class="section-card span-full">
+        <div class="section-header"><span class="section-title">Insurance</span><button class="btn-sm btn-add" onclick="app.openDrawer('insurance')">+ Add</button></div>
+        <div id="insList"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="view-history" class="main-view">
+  <div class="content-pad">
+    <div class="section-card" style="max-width: 800px; margin: 0 auto;"><div class="section-header"><span class="section-title">Audit Trail</span></div><div id="auditList" style="padding:20px; font-family:var(--mono); font-size:11px;"></div></div>
+  </div>
+</div>
+
+<div id="view-intake" class="main-view">
+  <div class="content-pad">
+    <div class="section-card" style="max-width: 500px; margin: 0 auto; padding: 32px;">
+      <h3>Initialize New Patient</h3><br>
+      <input type="text" id="inFirst" placeholder="First Name"><br><br>
+      <input type="text" id="inLast" placeholder="Last Name"><br><br>
+      <button class="btn-primary" style="width:100%" onclick="app.createPatient()">Create Record</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// --- CENTRALIZED APP OBJECT (PREVENTS REGRESSION) ---
+const app = {
+  patients: [{
+    id: 'p1',
+    profile: { firstName: 'Sarah', lastName: 'Chen', mrn: '48-221-9003', dob: '1988-05-14', gender: 'Female', pcp: 'Dr. Thorne' },
+    meds: [{ name: 'Metformin 500mg', sub: '1 tab daily', meta: 'SOURCE: EHR', tag: 'Active' }],
+    dxs: [], visits: [], insurance: [],
+    audit: [{ time: new Date().toLocaleString(), msg: 'Record synced from EHR.' }]
+  }],
+  activeId: 'p1',
+
+  init() {
+    this.renderSwitcher();
+    this.renderActive();
+  },
+
+  renderSwitcher() {
+    const s = document.getElementById('patientSwitcher');
+    s.innerHTML = this.patients.map(p => `<option value="${p.id}" ${p.id === this.activeId ? 'selected':''}>${p.profile.lastName}, ${p.profile.firstName}</option>`).join('');
+  },
+
+  renderActive() {
+    const p = this.patients.find(x => x.id === this.activeId);
+    document.getElementById('dispName').innerText = `${p.profile.firstName} ${p.profile.lastName}`;
+    document.getElementById('dispMRN').innerText = `MRN: ${p.profile.mrn}`;
+    document.getElementById('dispGender').innerText = p.profile.gender;
+    document.getElementById('dispDOB').innerText = p.profile.dob;
+    document.getElementById('dispPCP').innerText = p.profile.pcp;
+
+    this.renderList('medList', p.meds);
+    this.renderList('dxList', p.dxs);
+    this.renderList('visitList', p.visits);
+    this.renderList('insList', p.insurance);
+    document.getElementById('auditList').innerHTML = p.audit.map(a => `<div>[${a.time}] ${a.msg}</div>`).join('');
+  },
+
+  renderList(id, items) {
+    const container = document.getElementById(id);
+    container.innerHTML = items.length ? items.map(i => `<div class="entry"><div><div class="entry-title">${i.name}</div><div class="entry-sub">${i.sub}</div><div class="entry-meta">${i.meta}</div></div><span class="tag">${i.tag || 'New'}</span></div>`).join('') : '<div class="entry"><div class="entry-sub">No records.</div></div>';
+  },
+
+  openDrawer(type) {
+    const container = document.getElementById('drawerContainer');
+    const content = document.getElementById('drawerContent');
+    const p = this.patients.find(x => x.id === this.activeId);
+
+    if (type === 'profile') {
+      content.innerHTML = `
+        <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:15px;">
+          <div class="form-group"><label>First</label><input id="edF" value="${p.profile.firstName}"></div>
+          <div class="form-group"><label>Last</label><input id="edL" value="${p.profile.lastName}"></div>
+          <div class="form-group"><label>DOB</label><input id="edD" type="date" value="${p.profile.dob}"></div>
+          <div class="form-group"><label>Gender</label><select id="edG"><option ${p.profile.gender==='Female'?'selected':''}>Female</option><option ${p.profile.gender==='Male'?'selected':''}>Male</option></select></div>
+        </div>
+        <div style="margin-top:20px; display:flex; gap:10px; justify-content:flex-end;">
+          <button class="btn-sm" onclick="app.closeDrawer()">Cancel</button>
+          <button class="btn-primary" onclick="app.saveProfile()">Update Profile</button>
+        </div>`;
+    } else {
+      content.innerHTML = `
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px;">
+          <div class="form-group"><label>Entry Title</label><input id="newT" placeholder="Name/Procedure"></div>
+          <div class="form-group"><label>Details</label><input id="newS" placeholder="Instructions/Codes"></div>
+        </div>
+        <div style="margin-top:20px; display:flex; gap:10px; justify-content:flex-end;">
+          <button class="btn-sm" onclick="app.closeDrawer()">Cancel</button>
+          <button class="btn-primary" onclick="app.saveEntry('${type}')">Add to ${type}</button>
+        </div>`;
+    }
+    container.classList.add('open');
+  },
+
+  closeDrawer() { document.getElementById('drawerContainer').classList.remove('open'); },
+
+  saveProfile() {
+    const p = this.patients.find(x => x.id === this.activeId);
+    p.profile.firstName = document.getElementById('edF').value;
+    p.profile.lastName = document.getElementById('edL').value;
+    p.profile.dob = document.getElementById('edD').value;
+    p.profile.gender = document.getElementById('edG').value;
+    p.audit.push({ time: new Date().toLocaleString(), msg: 'Profile demographics updated.' });
+    this.closeDrawer(); this.renderActive(); this.renderSwitcher();
+  },
+
+  saveEntry(cat) {
+    const p = this.patients.find(x => x.id === this.activeId);
+    p[cat].push({
+      name: document.getElementById('newT').value,
+      sub: document.getElementById('newS').value,
+      meta: 'MANUAL ENTRY: ' + new Date().toLocaleDateString(),
+      tag: 'New'
+    });
+    p.audit.push({ time: new Date().toLocaleString(), msg: `New entry added to ${cat}` });
+    this.closeDrawer(); this.renderActive();
+  },
+
+  switchContext(id) { this.activeId = id; this.closeDrawer(); this.renderActive(); },
+  showTab(id) {
+    document.querySelectorAll('.main-view').forEach(v => v.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('view-' + id).classList.add('active');
+    document.getElementById('btn-' + id).classList.add('active');
+  },
+  toggleTheme() { document.body.setAttribute('data-theme', document.body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'); },
+  createPatient() {
+    const n = { id: 'p'+Date.now(), profile: { firstName: document.getElementById('inFirst').value, lastName: document.getElementById('inLast').value, mrn: 'PENDING', dob: '', gender: '', pcp: 'None' }, meds: [], dxs: [], visits: [], insurance: [], audit: [{time: new Date().toLocaleString(), msg: 'Created'}] };
+    this.patients.push(n); this.activeId = n.id; this.renderSwitcher(); this.renderActive(); this.showTab('clinician');
+  }
+};
+
+window.onload = () => app.init();
+</script>
+</body>
+</html>
