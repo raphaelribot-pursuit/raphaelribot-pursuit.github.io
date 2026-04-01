@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Unified Patient Record | v5.7 Stability Build</title>
+<title>Unified Patient Record</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
-  :root {
+  :root{
     --bg:#F5F4F0;--surface:#FFFFFF;--border:#DDDBD4;--border-strong:#B8B5AC;
     --text-primary:#1A1917;--text-secondary:#6B6860;--text-muted:#9E9B94;
     --accent:#1A4B6E;--accent-light:#E8F0F7;--accent-mid:#3B7AAF;
@@ -20,239 +20,981 @@
     --bg:#111210;--surface:#1C1E1B;--border:#2E312C;--border-strong:#444840;
     --text-primary:#E8E6DF;--text-secondary:#9A9990;--text-muted:#5E6059;
     --accent:#2A6496;--accent-light:#162533;--accent-mid:#5B9FD4;
+    --danger:#C25050;--danger-light:#1F1212;
+    --warning:#C49A30;--warning-light:#1E1A0A;
+    --success:#3A9E6A;--success-light:#0D1F15;
   }
-  
   *{box-sizing:border-box;margin:0;padding:0;}
-  body{font-family:var(--sans);background:var(--bg);color:var(--text-primary);font-size:13px;line-height:1.5;min-height:100vh;}
+  body{font-family:var(--sans);background:var(--bg);color:var(--text-primary);font-size:14px;line-height:1.6;min-height:100vh;transition:background .2s,color .2s;}
 
-  /* UI Framework */
-  .app-header{background:var(--accent);color:white;padding:0 32px;display:flex;align-items:center;justify-content:space-between;height:52px;position:sticky;top:0;z-index:500;}
-  .pt-switcher select { background: rgba(0,0,0,0.2); color: white; border: 1px solid rgba(255,255,255,0.3); border-radius: 4px; padding: 4px 8px; font-size: 12px; cursor: pointer; outline: none; }
-  .tab-nav{background:var(--surface);border-bottom:1px solid var(--border);padding:0 32px;display:flex;gap:4px;position:sticky;top:52px;z-index:450;}
-  .tab-btn{font-size:12px;font-weight:600;padding:14px 20px 12px;border:none;background:transparent;color:var(--text-muted);cursor:pointer;border-bottom:2px solid transparent;text-transform:uppercase;}
+  /* ── Header ── */
+  .app-header{background:var(--accent);color:white;padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:52px;position:sticky;top:0;z-index:200;}
+  .app-header-left{display:flex;align-items:center;gap:16px;}
+  .app-header-brand{font-family:var(--mono);font-size:13px;font-weight:500;letter-spacing:.08em;opacity:.9;}
+  .btn-patients{font-family:var(--mono);font-size:12px;padding:5px 12px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:white;border-radius:20px;cursor:pointer;transition:background .15s;letter-spacing:.03em;}
+  .btn-patients:hover{background:rgba(255,255,255,.22);}
+  .app-header-right{display:flex;align-items:center;gap:12px;}
+  .app-header-badge{font-size:11px;font-family:var(--mono);background:rgba(255,255,255,.15);padding:3px 10px;border-radius:20px;}
+  .theme-toggle{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:white;font-family:var(--mono);font-size:12px;padding:5px 12px;border-radius:20px;cursor:pointer;transition:background .15s;}
+  .theme-toggle:hover{background:rgba(255,255,255,.22);}
+
+  /* ── Screens ── */
+  .screen{display:none;}
+  .screen.active{display:block;}
+
+  /* ════════════════════════════════
+     PATIENT LIST / SEARCH SCREEN
+  ════════════════════════════════ */
+  .list-wrap{max-width:760px;margin:0 auto;padding:36px 32px 60px;}
+  @media(max-width:720px){.list-wrap{padding:20px 16px 40px;}}
+  .list-hero{margin-bottom:28px;}
+  .list-hero h2{font-size:22px;font-weight:600;letter-spacing:-.01em;margin-bottom:4px;}
+  .list-hero p{font-size:14px;color:var(--text-secondary);}
+
+  .search-bar{display:flex;gap:10px;margin-bottom:24px;}
+  .search-input{font-family:var(--sans);font-size:15px;padding:11px 16px;border:1.5px solid var(--border-strong);border-radius:var(--radius);background:var(--surface);color:var(--text-primary);flex:1;outline:none;transition:border-color .15s;}
+  .search-input:focus{border-color:var(--accent-mid);}
+  .btn-new-patient{font-family:var(--sans);font-size:14px;font-weight:600;padding:11px 20px;background:var(--accent);color:white;border:none;border-radius:var(--radius);cursor:pointer;white-space:nowrap;transition:opacity .15s;}
+  .btn-new-patient:hover{opacity:.88;}
+
+  .patient-list{display:flex;flex-direction:column;gap:10px;}
+  .patient-list-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px 20px;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:space-between;gap:16px;}
+  .patient-list-item:hover{border-color:var(--accent-mid);background:var(--accent-light);}
+  .pli-left{}
+  .pli-name{font-size:16px;font-weight:600;margin-bottom:2px;}
+  .pli-meta{font-size:13px;color:var(--text-secondary);}
+  .pli-mrn{font-family:var(--mono);font-size:11px;color:var(--text-muted);margin-top:3px;}
+  .pli-right{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+  .pli-arrow{color:var(--text-muted);font-size:18px;}
+  .no-results{text-align:center;padding:48px 20px;color:var(--text-muted);font-size:14px;font-style:italic;}
+
+  /* ════════════════════════════════
+     RECORD SCREEN (tabs + content)
+  ════════════════════════════════ */
+  .tab-nav{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;display:flex;}
+  .tab-btn{font-family:var(--sans);font-size:13px;font-weight:500;padding:14px 18px 12px;border:none;background:transparent;color:var(--text-muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;display:flex;align-items:center;gap:6px;}
+  .tab-btn:hover{color:var(--text-primary);}
   .tab-btn.active{color:var(--accent-mid);border-bottom-color:var(--accent-mid);}
+  .tab-badge{background:var(--warning);color:white;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;display:none;}
+  .tab-badge.visible{display:inline-block;}
+  .view{display:none;}.view.active{display:block;}
 
-  /* Headers & Drawers */
-  .pt-summary-bar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 24px 32px; display: grid; grid-template-columns: 1.5fr 1fr 1fr auto; gap: 32px; align-items: center; }
-  #drawerContainer { overflow: hidden; transition: max-height 0.4s ease-in-out; max-height: 0; background: var(--bg); border-bottom: 1px solid transparent; }
-  #drawerContainer.open { max-height: 500px; border-bottom-color: var(--border); padding: 24px 32px; }
+  /* Patient banner */
+  .patient-banner{background:var(--surface);border-bottom:1px solid var(--border);padding:16px 24px;display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap;}
+  .patient-name-block h1{font-size:20px;font-weight:600;letter-spacing:-.01em;line-height:1.2;}
+  .patient-name-block .mrn{font-family:var(--mono);font-size:12px;color:var(--text-muted);margin-top:2px;}
+  .patient-meta{display:flex;gap:24px;flex-wrap:wrap;}
+  .meta-item label{display:block;font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:2px;}
+  .meta-item span{font-size:13px;font-weight:500;}
+  .meta-item.blood span{font-family:var(--mono);color:var(--danger);font-weight:600;}
+  .banner-actions{display:flex;gap:8px;align-self:flex-start;margin-top:2px;flex-shrink:0;}
+  .edit-patient-btn{font-family:var(--sans);font-size:12px;padding:5px 12px;border:1px solid var(--border-strong);background:transparent;border-radius:var(--radius);cursor:pointer;color:var(--text-secondary);transition:all .15s;}
+  .edit-patient-btn:hover{background:var(--bg);}
 
-  /* Grid System */
-  .main-view { display: none; }
-  .main-view.active { display: block; }
-  .content-pad { padding: 32px; max-width: 1200px; margin: 0 auto; }
-  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  /* Patient edit form */
+  .patient-edit-form{background:var(--accent-light);border-bottom:1px solid var(--border);padding:16px 24px;display:none;gap:14px;flex-wrap:wrap;align-items:flex-end;}
+  .patient-edit-form.open{display:flex;}
+  .patient-edit-form .field{display:flex;flex-direction:column;gap:4px;}
+  .patient-edit-form label{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);}
+  .patient-edit-form input,.patient-edit-form select{font-family:var(--sans);font-size:13px;padding:7px 10px;border:1px solid var(--border-strong);border-radius:var(--radius);background:var(--surface);color:var(--text-primary);width:170px;}
+  .btn-save{font-family:var(--sans);font-size:13px;font-weight:500;padding:8px 18px;background:var(--accent);color:white;border:none;border-radius:var(--radius);cursor:pointer;}
 
-  .section-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; margin-bottom: 24px; }
-  .section-header { padding: 12px 20px; border-bottom: 1px solid var(--border); background: var(--bg); display: flex; justify-content: space-between; align-items: center; }
-  .section-title { font-weight: 600; font-size: 11px; text-transform: uppercase; color: var(--text-secondary); }
+  /* Main grid */
+  .main{max-width:1100px;margin:0 auto;padding:24px 24px 60px;display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+  @media(max-width:760px){.main{grid-template-columns:1fr;padding:16px;}}
 
-  /* List Entries */
-  .entry { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: flex-start; }
-  .entry:last-child { border-bottom: none; }
-  .entry-title { font-weight: 600; font-size: 14px; color: var(--accent); }
-  .entry-sub { font-size: 12px; color: var(--text-secondary); }
-  .entry-meta { font-family: var(--mono); font-size: 10px; color: var(--text-muted); margin-top: 6px; text-transform: uppercase; }
+  /* Section cards */
+  .section-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;display:flex;flex-direction:column;}
+  .section-card.span-full{grid-column:1/-1;}
+  .section-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px 10px;border-bottom:1px solid var(--border);background:var(--bg);}
+  .section-title{display:flex;align-items:center;gap:8px;}
+  .section-title .icon{width:20px;height:20px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:11px;}
+  .section-title h2{font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--text-secondary);}
+  .section-count{font-family:var(--mono);font-size:11px;color:var(--text-muted);background:var(--border);padding:2px 7px;border-radius:10px;}
+  .add-btn{font-family:var(--sans);font-size:12px;font-weight:500;padding:4px 10px;border:1px solid var(--accent-mid);background:transparent;color:var(--accent-mid);border-radius:var(--radius);cursor:pointer;transition:all .15s;}
+  .add-btn:hover{background:var(--accent-light);}
+  .add-btn.active{background:var(--accent);color:white;border-color:var(--accent);}
 
-  /* Buttons & Forms */
-  .btn-sm { padding: 4px 10px; border-radius: 4px; border: 1px solid var(--border); background: var(--surface); cursor: pointer; font-size: 10px; font-weight: 600; font-family: var(--sans); }
-  .btn-add { color: var(--accent); border-color: var(--accent); background: var(--accent-light); }
-  .btn-primary { background: var(--accent); color: white; border: none; padding: 8px 16px; border-radius: 4px; font-weight: 600; }
-  
-  .form-group label { display: block; font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 4px; }
-  input, select { width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px; font-family: var(--sans); background: var(--surface); }
+  /* Entries */
+  .entry-list{padding:6px 0;flex:1;}
+  .entry-list .empty-state{display:flex;align-items:center;justify-content:center;padding:28px 16px;color:var(--text-muted);font-size:13px;font-style:italic;}
+  .entry{padding:9px 16px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;gap:10px;animation:fadeUp .18s ease;}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+  .entry:last-child{border-bottom:none;}
+  .entry.has-amendment{border-left:3px solid var(--warning);}
+  .entry-main{flex:1;min-width:0;}
+  .entry-name{font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .entry-detail{font-size:12px;color:var(--text-secondary);margin-top:1px;}
+  .entry-meta{font-family:var(--mono);font-size:11px;color:var(--text-muted);margin-top:2px;}
+  .entry-right{display:flex;align-items:flex-start;gap:5px;flex-shrink:0;}
+  .tag{font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;padding:2px 7px;border-radius:10px;white-space:nowrap;}
+  .tag-high{background:var(--danger-light);color:var(--danger);}
+  .tag-medium{background:var(--warning-light);color:var(--warning);}
+  .tag-low{background:var(--success-light);color:var(--success);}
+  .tag-active{background:var(--accent-light);color:var(--accent-mid);}
+  .tag-resolved{background:var(--bg);color:var(--text-muted);border:1px solid var(--border);}
+  .tag-pending{background:var(--warning-light);color:var(--warning);}
+  .tag-covered{background:var(--success-light);color:var(--success);}
+  .tag-denied{background:var(--danger-light);color:var(--danger);}
+  .source-badge{font-family:var(--mono);font-size:9px;padding:1px 5px;border-radius:3px;border:1px solid var(--border);color:var(--text-muted);white-space:nowrap;}
+  .source-patient{border-color:#9FE1CB;color:#0F6E56;background:#E1F5EE;}
+  .source-clinician{border-color:#B5D4F4;color:#185FA5;background:#E6F1FB;}
+  .entry-action-btn{background:none;border:none;cursor:pointer;font-size:12px;padding:2px 5px;border-radius:3px;transition:all .12s;opacity:0;font-family:var(--sans);}
+  .entry:hover .entry-action-btn{opacity:1;}
+  .btn-propose{color:var(--warning);}
+  .btn-propose:hover{background:var(--warning-light);}
+  .btn-delete{color:var(--text-muted);}
+  .btn-delete:hover{background:var(--danger-light);color:var(--danger);}
 
-  .tag { font-family: var(--mono); font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 4px; background: var(--accent-light); color: var(--accent); text-transform: uppercase; }
+  /* Add forms */
+  .add-form{display:none;padding:12px 16px;background:var(--accent-light);border-top:1px solid var(--border);flex-direction:column;gap:8px;}
+  .add-form.open{display:flex;}
+  .form-row{display:flex;gap:8px;flex-wrap:wrap;}
+  .form-field{display:flex;flex-direction:column;gap:3px;flex:1;min-width:110px;}
+  .form-field label{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);}
+  .form-field input,.form-field select,.form-field textarea{font-family:var(--sans);font-size:13px;padding:6px 9px;border:1px solid var(--border-strong);border-radius:var(--radius);background:var(--surface);color:var(--text-primary);outline:none;width:100%;resize:vertical;transition:border-color .15s;}
+  .form-field input:focus,.form-field select:focus,.form-field textarea:focus{border-color:var(--accent-mid);}
+  .form-actions{display:flex;gap:8px;justify-content:flex-end;}
+  .btn-submit{font-family:var(--sans);font-size:13px;font-weight:500;padding:6px 16px;background:var(--accent);color:white;border:none;border-radius:var(--radius);cursor:pointer;}
+  .btn-cancel{font-family:var(--sans);font-size:13px;padding:6px 12px;background:transparent;color:var(--text-secondary);border:1px solid var(--border-strong);border-radius:var(--radius);cursor:pointer;}
+  .btn-cancel:hover{background:var(--bg);}
+  .record-footer{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);font-size:12px;color:var(--text-muted);font-family:var(--mono);}
+  .status-dot{width:6px;height:6px;border-radius:50%;background:var(--success);display:inline-block;margin-right:6px;}
+
+  /* ════════════════════════════════
+     AMENDMENTS VIEW
+  ════════════════════════════════ */
+  .amendments-wrap{max-width:860px;margin:0 auto;padding:24px 24px 60px;}
+  .amendments-hero{margin-bottom:20px;}
+  .amendments-hero h2{font-size:18px;font-weight:600;margin-bottom:3px;}
+  .amendments-hero p{font-size:13px;color:var(--text-secondary);}
+  .empty-amendments{text-align:center;padding:52px 20px;color:var(--text-muted);}
+  .empty-amendments .ea-icon{font-size:32px;margin-bottom:10px;}
+  .amendment-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);margin-bottom:14px;overflow:hidden;animation:fadeUp .2s ease;}
+  .amendment-card.resolved{opacity:.55;}
+  .amc-header{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;gap:12px;}
+  .amc-meta .amc-title{font-size:14px;font-weight:600;margin-bottom:2px;}
+  .amc-meta .amc-subtitle{font-size:12px;color:var(--text-secondary);font-family:var(--mono);}
+  .amc-status{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:3px 10px;border-radius:10px;white-space:nowrap;align-self:flex-start;}
+  .status-open{background:var(--warning-light);color:var(--warning);}
+  .status-approved{background:var(--success-light);color:var(--success);}
+  .status-rejected{background:var(--danger-light);color:var(--danger);}
+  .diff-block{padding:12px 16px;border-bottom:1px solid var(--border);}
+  .diff-label{font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;}
+  .diff-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px;}
+  .diff-cell{font-size:13px;padding:7px 10px;border-radius:4px;line-height:1.5;}
+  .diff-cell .diff-field-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px;opacity:.7;}
+  .diff-old{background:var(--danger-light);color:var(--danger);border-left:3px solid var(--danger);}
+  .diff-new{background:var(--success-light);color:var(--success);border-left:3px solid var(--success);}
+  .diff-unchanged{background:var(--bg);border-left:3px solid var(--border);}
+  .amc-reason{padding:10px 16px;border-bottom:1px solid var(--border);font-size:13px;color:var(--text-secondary);background:var(--bg);}
+  .amc-reason strong{color:var(--text-primary);font-weight:500;}
+  .amc-actions{padding:10px 16px;display:flex;gap:8px;align-items:center;justify-content:flex-end;}
+  .btn-approve{font-family:var(--sans);font-size:13px;font-weight:600;padding:6px 16px;background:var(--success);color:white;border:none;border-radius:var(--radius);cursor:pointer;}
+  .btn-reject{font-family:var(--sans);font-size:13px;padding:6px 12px;background:transparent;color:var(--danger);border:1px solid var(--danger);border-radius:var(--radius);cursor:pointer;}
+  .btn-reject:hover{background:var(--danger-light);}
+  .resolved-note{font-family:var(--mono);font-size:11px;color:var(--text-muted);font-style:italic;}
+
+  /* ════════════════════════════════
+     PROPOSE AMENDMENT DRAWER
+  ════════════════════════════════ */
+  .drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:300;display:none;}
+  .drawer-overlay.open{display:block;}
+  .drawer{position:fixed;right:0;top:0;bottom:0;width:460px;max-width:95vw;background:var(--surface);border-left:1px solid var(--border);z-index:301;display:none;flex-direction:column;animation:slideLeft .2s ease;}
+  .drawer.open{display:flex;}
+  @keyframes slideLeft{from{transform:translateX(30px);opacity:0}to{transform:none;opacity:1}}
+  .drawer-header{padding:18px 22px 14px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;gap:12px;}
+  .drawer-header h3{font-size:16px;font-weight:600;}
+  .drawer-header p{font-size:13px;color:var(--text-secondary);margin-top:2px;}
+  .drawer-close{background:none;border:none;cursor:pointer;font-size:20px;color:var(--text-muted);padding:0 4px;line-height:1;}
+  .drawer-close:hover{color:var(--text-primary);}
+  .drawer-body{padding:18px 22px;flex:1;overflow-y:auto;}
+  .drawer-footer{padding:14px 22px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end;}
+  .current-value-block{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;margin-bottom:14px;}
+  .current-value-block .cvb-label{font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:4px;}
+  .current-value-block .cvb-value{font-size:14px;}
+  .drawer-field{margin-bottom:14px;}
+  .drawer-field label{display:block;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:5px;}
+  .drawer-field input,.drawer-field select,.drawer-field textarea{font-family:var(--sans);font-size:14px;padding:9px 11px;border:1.5px solid var(--border-strong);border-radius:var(--radius);background:var(--surface);color:var(--text-primary);width:100%;outline:none;transition:border-color .15s;resize:vertical;}
+  .drawer-field input:focus,.drawer-field select:focus,.drawer-field textarea:focus{border-color:var(--accent-mid);}
+  .btn-propose-submit{font-family:var(--sans);font-size:14px;font-weight:600;padding:9px 22px;background:var(--warning);color:white;border:none;border-radius:var(--radius);cursor:pointer;}
+  .btn-drawer-cancel{font-family:var(--sans);font-size:13px;padding:9px 14px;background:transparent;color:var(--text-secondary);border:1px solid var(--border-strong);border-radius:var(--radius);cursor:pointer;}
+  .btn-drawer-cancel:hover{background:var(--bg);}
+
+  /* ════════════════════════════════
+     INTAKE VIEW (inside record)
+  ════════════════════════════════ */
+  .intake-wrap{max-width:640px;margin:0 auto;padding:36px 24px 80px;}
+  @media(max-width:700px){.intake-wrap{padding:20px 16px 60px;}}
+  .intake-notice{background:var(--accent-light);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 18px;margin-bottom:28px;font-size:13px;color:var(--text-secondary);line-height:1.5;}
+  .intake-notice strong{color:var(--accent-mid);}
+  .intake-hero{margin-bottom:28px;}
+  .intake-hero h2{font-size:22px;font-weight:600;letter-spacing:-.02em;line-height:1.3;margin-bottom:6px;}
+  .intake-hero p{font-size:15px;color:var(--text-secondary);line-height:1.6;}
+  .intake-steps{display:flex;align-items:center;margin-bottom:32px;}
+  .step-dot{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0;border:2px solid var(--border-strong);color:var(--text-muted);background:var(--surface);transition:all .2s;cursor:pointer;user-select:none;}
+  .step-dot.done{background:var(--success);border-color:var(--success);color:white;}
+  .step-dot.current{background:var(--accent);border-color:var(--accent);color:white;}
+  .step-line{flex:1;height:2px;background:var(--border);transition:background .3s;}
+  .step-line.done{background:var(--success);}
+  .intake-panel{display:none;animation:fadeUp .2s ease;}
+  .intake-panel.active{display:block;}
+  .intake-section-label{font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--text-muted);margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+  .intake-section-label::after{content:'';flex:1;height:1px;background:var(--border);}
+  .intake-field{margin-bottom:16px;}
+  .intake-field label{display:block;font-size:16px;font-weight:500;margin-bottom:5px;}
+  .intake-field .hint{font-size:13px;color:var(--text-muted);margin-bottom:7px;line-height:1.4;}
+  .intake-field input,.intake-field select,.intake-field textarea{font-family:var(--sans);font-size:16px;padding:11px 14px;border:1.5px solid var(--border-strong);border-radius:var(--radius);background:var(--surface);color:var(--text-primary);width:100%;outline:none;transition:border-color .15s;resize:vertical;}
+  .intake-field input:focus,.intake-field select:focus,.intake-field textarea:focus{border-color:var(--accent-mid);}
+  .intake-field-row{display:flex;gap:12px;flex-wrap:wrap;}
+  .intake-field-row .intake-field{flex:1;min-width:170px;}
+  .intake-list{margin-bottom:8px;}
+  .intake-list-item{display:flex;align-items:center;gap:10px;padding:9px 13px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:7px;animation:fadeUp .15s ease;}
+  .intake-list-item span{flex:1;font-size:15px;}
+  .intake-list-item .remove-item{background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:20px;line-height:1;transition:color .12s;}
+  .intake-list-item .remove-item:hover{color:var(--danger);}
+  .intake-add-row{display:flex;gap:8px;flex-wrap:wrap;}
+  .intake-add-row input,.intake-add-row select{font-family:var(--sans);font-size:15px;padding:9px 11px;border:1.5px solid var(--border-strong);border-radius:var(--radius);background:var(--surface);color:var(--text-primary);outline:none;flex:1;min-width:170px;transition:border-color .15s;}
+  .intake-add-row input:focus,.intake-add-row select:focus{border-color:var(--accent-mid);}
+  .btn-add-item{font-family:var(--sans);font-size:14px;font-weight:500;padding:9px 16px;background:transparent;border:1.5px solid var(--accent-mid);color:var(--accent-mid);border-radius:var(--radius);cursor:pointer;white-space:nowrap;transition:all .15s;}
+  .btn-add-item:hover{background:var(--accent-light);}
+  .intake-nav{display:flex;justify-content:space-between;align-items:center;margin-top:28px;padding-top:20px;border-top:1px solid var(--border);}
+  .btn-next{font-family:var(--sans);font-size:15px;font-weight:600;padding:11px 26px;background:var(--accent);color:white;border:none;border-radius:var(--radius);cursor:pointer;}
+  .btn-next:hover{opacity:.88;}
+  .btn-back{font-family:var(--sans);font-size:14px;padding:11px 16px;background:transparent;color:var(--text-secondary);border:1px solid var(--border-strong);border-radius:var(--radius);cursor:pointer;}
+  .btn-back:hover{background:var(--bg);}
+  .btn-submit-intake{font-family:var(--sans);font-size:15px;font-weight:600;padding:12px 26px;background:var(--success);color:white;border:none;border-radius:var(--radius);cursor:pointer;}
+  .btn-submit-intake:hover{opacity:.88;}
+  .intake-confirm{display:none;text-align:center;padding:52px 20px;animation:fadeUp .25s ease;}
+  .intake-confirm.active{display:block;}
+  .confirm-icon{width:60px;height:60px;border-radius:50%;background:var(--success-light);color:var(--success);font-size:26px;display:flex;align-items:center;justify-content:center;margin:0 auto 18px;border:2px solid var(--success);}
+  .intake-confirm h3{font-size:20px;font-weight:600;margin-bottom:8px;}
+  .intake-confirm p{font-size:15px;color:var(--text-secondary);margin-bottom:24px;line-height:1.6;}
+  .btn-view-record{font-family:var(--sans);font-size:14px;font-weight:600;padding:11px 24px;background:var(--accent);color:white;border:none;border-radius:var(--radius);cursor:pointer;margin:0 6px;}
+  .btn-view-list{font-family:var(--sans);font-size:14px;font-weight:500;padding:11px 20px;background:transparent;color:var(--text-secondary);border:1px solid var(--border-strong);border-radius:var(--radius);cursor:pointer;}
 </style>
 </head>
 <body>
 
+<!-- App header -->
 <header class="app-header">
-  <div style="font-family: var(--mono); font-size: 12px;">◈ UNIFIED_RECORD_v5.7</div>
-  <div class="pt-switcher">
-    <select id="patientSwitcher" onchange="app.switchContext(this.value)"></select>
+  <div class="app-header-left">
+    <div class="app-header-brand">UNIFIED RECORD</div>
+    <button class="btn-patients" onclick="goToList()">⟵ All patients</button>
   </div>
-  <button class="btn-sm" style="color:white; background:transparent; border-color:rgba(255,255,255,0.3);" onclick="app.toggleTheme()">🌓 MODE</button>
+  <div class="app-header-right">
+    <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn">☀ Light</button>
+    <div class="app-header-badge">v0.1 PROTOTYPE</div>
+  </div>
 </header>
 
-<nav class="tab-nav">
-  <button class="tab-btn active" id="btn-clinician" onclick="app.showTab('clinician')">🩺 Record</button>
-  <button class="tab-btn" id="btn-history" onclick="app.showTab('history')">⟳ History</button>
-  <button class="tab-btn" id="btn-intake" onclick="app.showTab('intake')">📝 Intake</button>
-</nav>
-
-<div id="view-clinician" class="main-view active">
-  <div class="pt-summary-bar">
-    <div>
-      <h1 id="dispName" style="font-size: 26px; font-weight: 500;">--</h1>
-      <div id="dispMRN" style="font-family: var(--mono); color: var(--text-muted); font-size: 11px;">--</div>
+<!-- ══════════════════════════════════════
+     SCREEN: PATIENT LIST
+══════════════════════════════════════ -->
+<div class="screen active" id="screenList">
+  <div class="list-wrap">
+    <div class="list-hero">
+      <h2>Patient records</h2>
+      <p>Search by name or MRN, or start a new patient intake.</p>
     </div>
-    <div style="border-left: 1px solid var(--border); padding-left: 20px;">
-      <label style="font-size: 10px; font-weight: 700; color: var(--text-muted);">GENDER / DOB</label>
-      <div style="font-size: 13px;"><span id="dispGender">--</span> • <span id="dispDOB">--</span></div>
+    <div class="search-bar">
+      <input class="search-input" id="searchInput" type="text" placeholder="Search by name or MRN…" oninput="renderPatientList()" autocomplete="off">
+      <button class="btn-new-patient" onclick="startNewIntake()">+ New patient intake</button>
     </div>
-    <div style="border-left: 1px solid var(--border); padding-left: 20px;">
-      <label style="font-size: 10px; font-weight: 700; color: var(--text-muted);">PRIMARY CARE</label>
-      <div id="dispPCP" style="font-size: 13px;">--</div>
-    </div>
-    <button class="btn-sm" onclick="app.openDrawer('profile')">✎ Edit Info</button>
-  </div>
-
-  <div id="drawerContainer">
-    <div id="drawerContent"></div>
-  </div>
-
-  <div class="content-pad">
-    <div class="grid">
-      <div class="section-card">
-        <div class="section-header"><span class="section-title">Medications & Allergies</span><button class="btn-sm btn-add" onclick="app.openDrawer('meds')">+ Add</button></div>
-        <div id="medList"></div>
-      </div>
-      <div class="section-card">
-        <div class="section-header"><span class="section-title">Diagnoses & Conditions</span><button class="btn-sm btn-add" onclick="app.openDrawer('dxs')">+ Add</button></div>
-        <div id="dxList"></div>
-      </div>
-      <div class="section-card span-full">
-        <div class="section-header"><span class="section-title">Visit History</span><button class="btn-sm btn-add" onclick="app.openDrawer('visits')">+ Add</button></div>
-        <div id="visitList"></div>
-      </div>
-      <div class="section-card span-full">
-        <div class="section-header"><span class="section-title">Insurance</span><button class="btn-sm btn-add" onclick="app.openDrawer('insurance')">+ Add</button></div>
-        <div id="insList"></div>
-      </div>
-    </div>
+    <div class="patient-list" id="patientListEl"></div>
   </div>
 </div>
 
-<div id="view-history" class="main-view">
-  <div class="content-pad">
-    <div class="section-card" style="max-width: 800px; margin: 0 auto;"><div class="section-header"><span class="section-title">Audit Trail</span></div><div id="auditList" style="padding:20px; font-family:var(--mono); font-size:11px;"></div></div>
-  </div>
-</div>
+<!-- ══════════════════════════════════════
+     SCREEN: PATIENT RECORD
+══════════════════════════════════════ -->
+<div class="screen" id="screenRecord">
 
-<div id="view-intake" class="main-view">
-  <div class="content-pad">
-    <div class="section-card" style="max-width: 500px; margin: 0 auto; padding: 32px;">
-      <h3>Initialize New Patient</h3><br>
-      <input type="text" id="inFirst" placeholder="First Name"><br><br>
-      <input type="text" id="inLast" placeholder="Last Name"><br><br>
-      <button class="btn-primary" style="width:100%" onclick="app.createPatient()">Create Record</button>
+  <!-- Tab nav -->
+  <nav class="tab-nav">
+    <button class="tab-btn active" id="tabClinician" onclick="switchTab('clinician')">🩺 Record</button>
+    <button class="tab-btn" id="tabAmendments" onclick="switchTab('amendments')">⟳ Amendments <span class="tab-badge" id="amendmentBadge">0</span></button>
+    <button class="tab-btn" id="tabIntake" onclick="switchTab('intake')">📝 Intake</button>
+  </nav>
+
+  <!-- ── Clinician view ── -->
+  <div class="view active" id="viewClinician">
+    <div class="patient-banner" id="patientBanner">
+      <div class="patient-name-block">
+        <h1 id="displayName">—</h1>
+        <div class="mrn" id="displayMRN">MRN: —</div>
+      </div>
+      <div class="patient-meta">
+        <div class="meta-item"><label>DOB</label><span id="displayDOB">—</span></div>
+        <div class="meta-item"><label>Age</label><span id="displayAge">—</span></div>
+        <div class="meta-item"><label>Sex</label><span id="displaySex">—</span></div>
+        <div class="meta-item blood"><label>Blood</label><span id="displayBlood">—</span></div>
+        <div class="meta-item"><label>Provider</label><span id="displayProvider">—</span></div>
+      </div>
+      <div class="banner-actions">
+        <button class="edit-patient-btn" onclick="togglePatientForm()">Edit</button>
+      </div>
     </div>
+
+    <div class="patient-edit-form" id="patientForm">
+      <div class="field"><label>First name</label><input id="pFirst" type="text"></div>
+      <div class="field"><label>Last name</label><input id="pLast" type="text"></div>
+      <div class="field"><label>MRN</label><input id="pMRN" type="text"></div>
+      <div class="field"><label>Date of birth</label><input id="pDOB" type="date"></div>
+      <div class="field"><label>Sex</label><select id="pSex"><option value="">—</option><option>Male</option><option>Female</option><option>Non-binary</option><option>Other</option></select></div>
+      <div class="field"><label>Blood type</label><select id="pBlood"><option value="">—</option><option>A+</option><option>A-</option><option>B+</option><option>B-</option><option>AB+</option><option>AB-</option><option>O+</option><option>O-</option></select></div>
+      <div class="field"><label>Primary provider</label><input id="pProvider" type="text"></div>
+      <button class="btn-save" onclick="savePatient()">Save</button>
+    </div>
+
+    <main class="main">
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title"><div class="icon" style="background:#FDF0F0;">💊</div><h2>Medications &amp; Allergies</h2><span class="section-count" id="medCount">0</span></div>
+          <button class="add-btn" id="addMedBtn" onclick="toggleForm('med')">+ Add</button>
+        </div>
+        <div class="entry-list" id="medList"><div class="empty-state">No entries yet</div></div>
+        <div class="add-form" id="medForm">
+          <div class="form-row">
+            <div class="form-field" style="flex:2"><label>Name</label><input id="medName" type="text" placeholder="e.g. Metformin 500mg"></div>
+            <div class="form-field"><label>Type</label><select id="medType"><option>Medication</option><option>Allergy</option></select></div>
+          </div>
+          <div class="form-row">
+            <div class="form-field"><label>Dose / frequency</label><input id="medDose" type="text" placeholder="e.g. twice daily"></div>
+            <div class="form-field"><label>Severity</label><select id="medSeverity"><option value="">—</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select></div>
+            <div class="form-field"><label>Source</label><select id="medSource"><option value="patient">Patient-reported</option><option value="clinician">Clinician</option><option value="system">System / EHR</option></select></div>
+          </div>
+          <div class="form-actions"><button class="btn-cancel" onclick="toggleForm('med')">Cancel</button><button class="btn-submit" onclick="addEntry('med')">Add</button></div>
+        </div>
+      </div>
+
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title"><div class="icon" style="background:#E6F1FB;">🩺</div><h2>Diagnoses &amp; Conditions</h2><span class="section-count" id="dxCount">0</span></div>
+          <button class="add-btn" id="addDxBtn" onclick="toggleForm('dx')">+ Add</button>
+        </div>
+        <div class="entry-list" id="dxList"><div class="empty-state">No entries yet</div></div>
+        <div class="add-form" id="dxForm">
+          <div class="form-row">
+            <div class="form-field" style="flex:2"><label>Diagnosis</label><input id="dxName" type="text" placeholder="e.g. Type 2 Diabetes"></div>
+            <div class="form-field"><label>ICD-10</label><input id="dxCode" type="text" placeholder="e.g. E11.9"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-field"><label>Date diagnosed</label><input id="dxDate" type="date"></div>
+            <div class="form-field"><label>Status</label><select id="dxStatus"><option value="active">Active</option><option value="resolved">Resolved</option></select></div>
+            <div class="form-field"><label>Source</label><select id="dxSource"><option value="patient">Patient-reported</option><option value="clinician">Clinician</option><option value="system">System / EHR</option></select></div>
+          </div>
+          <div class="form-actions"><button class="btn-cancel" onclick="toggleForm('dx')">Cancel</button><button class="btn-submit" onclick="addEntry('dx')">Add</button></div>
+        </div>
+      </div>
+
+      <div class="section-card span-full">
+        <div class="section-header">
+          <div class="section-title"><div class="icon" style="background:#EEF7F2;">📋</div><h2>Visit History &amp; Notes</h2><span class="section-count" id="visitCount">0</span></div>
+          <button class="add-btn" id="addVisitBtn" onclick="toggleForm('visit')">+ Add</button>
+        </div>
+        <div class="entry-list" id="visitList"><div class="empty-state">No entries yet</div></div>
+        <div class="add-form" id="visitForm">
+          <div class="form-row">
+            <div class="form-field"><label>Visit date</label><input id="visitDate" type="date"></div>
+            <div class="form-field"><label>Visit type</label><select id="visitType"><option>Primary care</option><option>Emergency</option><option>Specialist</option><option>Telehealth</option><option>Inpatient</option><option>Follow-up</option></select></div>
+            <div class="form-field"><label>Provider</label><input id="visitProvider" type="text" placeholder="Dr. Name / Facility"></div>
+            <div class="form-field"><label>Source</label><select id="visitSource"><option value="patient">Patient-reported</option><option value="clinician">Clinician</option><option value="system">System / EHR</option></select></div>
+          </div>
+          <div class="form-row"><div class="form-field"><label>Notes</label><textarea id="visitNotes" rows="3" placeholder="Chief complaint, findings, plan..."></textarea></div></div>
+          <div class="form-actions"><button class="btn-cancel" onclick="toggleForm('visit')">Cancel</button><button class="btn-submit" onclick="addEntry('visit')">Add</button></div>
+        </div>
+      </div>
+
+      <div class="section-card span-full">
+        <div class="section-header">
+          <div class="section-title"><div class="icon" style="background:#FAEEDA;">📄</div><h2>Insurance &amp; Billing</h2><span class="section-count" id="insCount">0</span></div>
+          <button class="add-btn" id="addInsBtn" onclick="toggleForm('ins')">+ Add</button>
+        </div>
+        <div class="entry-list" id="insList"><div class="empty-state">No entries yet</div></div>
+        <div class="add-form" id="insForm">
+          <div class="form-row">
+            <div class="form-field" style="flex:2"><label>Insurer / claim</label><input id="insName" type="text" placeholder="e.g. Blue Cross — Claim #12345"></div>
+            <div class="form-field"><label>Type</label><select id="insType"><option>Primary insurance</option><option>Secondary insurance</option><option>Claim</option><option>Prior authorization</option><option>Denial</option></select></div>
+          </div>
+          <div class="form-row">
+            <div class="form-field"><label>Amount / ID</label><input id="insAmount" type="text"></div>
+            <div class="form-field"><label>Status</label><select id="insStatus"><option value="covered">Covered</option><option value="pending">Pending</option><option value="denied">Denied</option></select></div>
+            <div class="form-field"><label>Date</label><input id="insDate" type="date"></div>
+            <div class="form-field"><label>Source</label><select id="insSource"><option value="patient">Patient-reported</option><option value="clinician">Clinician</option><option value="system">System / EHR</option></select></div>
+          </div>
+          <div class="form-actions"><button class="btn-cancel" onclick="toggleForm('ins')">Cancel</button><button class="btn-submit" onclick="addEntry('ins')">Add</button></div>
+        </div>
+      </div>
+
+      <div class="record-footer">
+        <div><span class="status-dot"></span><span>Record active — prototype mode</span></div>
+        <span id="footerTimestamp">—</span>
+      </div>
+    </main>
+  </div>
+
+  <!-- ── Amendments view ── -->
+  <div class="view" id="viewAmendments">
+    <div class="amendments-wrap">
+      <div class="amendments-hero">
+        <h2>Amendment review queue</h2>
+        <p>Proposed corrections to this record. Approve to merge into the record, or reject to dismiss.</p>
+      </div>
+      <div id="amendmentList"></div>
+    </div>
+  </div>
+
+  <!-- ── Intake view (new patient or add to existing) ── -->
+  <div class="view" id="viewIntake">
+    <div class="intake-wrap">
+      <div class="intake-notice" id="intakeNotice"></div>
+      <div class="intake-steps" id="intakeSteps">
+        <div class="step-dot current" id="stepDot1" onclick="gotoStep(1)">1</div>
+        <div class="step-line" id="stepLine1"></div>
+        <div class="step-dot" id="stepDot2" onclick="gotoStep(2)">2</div>
+        <div class="step-line" id="stepLine2"></div>
+        <div class="step-dot" id="stepDot3" onclick="gotoStep(3)">3</div>
+        <div class="step-line" id="stepLine3"></div>
+        <div class="step-dot" id="stepDot4" onclick="gotoStep(4)">4</div>
+      </div>
+
+      <div class="intake-panel active" id="step1">
+        <div class="intake-hero"><h2>Let's start with some basic information about you.</h2><p>All fields are optional — fill in what you can.</p></div>
+        <div class="intake-section-label">About you</div>
+        <div class="intake-field-row">
+          <div class="intake-field"><label>First name</label><input id="i_first" type="text" placeholder="Your first name" autocomplete="given-name"></div>
+          <div class="intake-field"><label>Last name</label><input id="i_last" type="text" placeholder="Your last name" autocomplete="family-name"></div>
+        </div>
+        <div class="intake-field-row">
+          <div class="intake-field"><label>Date of birth</label><input id="i_dob" type="date"></div>
+          <div class="intake-field"><label>Sex</label><select id="i_sex"><option value="">Prefer not to say</option><option>Male</option><option>Female</option><option>Non-binary</option><option>Other</option></select></div>
+        </div>
+        <div class="intake-field-row">
+          <div class="intake-field"><label>Blood type <span style="font-weight:400;font-size:14px;color:var(--text-muted)">(if known)</span></label><select id="i_blood"><option value="">I don't know</option><option>A+</option><option>A-</option><option>B+</option><option>B-</option><option>AB+</option><option>AB-</option><option>O+</option><option>O-</option></select></div>
+          <div class="intake-field"><label>Preferred language</label><input id="i_lang" type="text" placeholder="e.g. English, Spanish"></div>
+        </div>
+        <div class="intake-nav"><span></span><button class="btn-next" onclick="nextStep(1)">Continue →</button></div>
+      </div>
+
+      <div class="intake-panel" id="step2">
+        <div class="intake-hero"><h2>What medications are you currently taking?</h2><p>Include prescriptions, over-the-counter medicines, vitamins, and supplements. Also list any allergies.</p></div>
+        <div class="intake-section-label">Medications</div>
+        <div class="intake-list" id="iMedList"></div>
+        <div class="intake-add-row"><input id="iMedInput" type="text" placeholder="e.g. Lisinopril 10mg, once daily" onkeydown="if(event.key==='Enter')addIntakeItem('med')"><button class="btn-add-item" onclick="addIntakeItem('med')">+ Add</button></div>
+        <div class="intake-section-label" style="margin-top:24px;">Allergies</div>
+        <div class="intake-list" id="iAllergyList"></div>
+        <div class="intake-add-row"><input id="iAllergyInput" type="text" placeholder="e.g. Penicillin — causes hives" onkeydown="if(event.key==='Enter')addIntakeItem('allergy')"><select id="iAllergySev" style="flex:0;min-width:120px;"><option value="high">Severe</option><option value="medium" selected>Moderate</option><option value="low">Mild</option></select><button class="btn-add-item" onclick="addIntakeItem('allergy')">+ Add</button></div>
+        <div class="intake-nav"><button class="btn-back" onclick="prevStep(2)">← Back</button><button class="btn-next" onclick="nextStep(2)">Continue →</button></div>
+      </div>
+
+      <div class="intake-panel" id="step3">
+        <div class="intake-hero"><h2>Do you have any ongoing medical conditions?</h2><p>List diagnosed conditions, past surgeries, or chronic illnesses your provider should know about.</p></div>
+        <div class="intake-section-label">Conditions &amp; diagnoses</div>
+        <div class="intake-list" id="iCondList"></div>
+        <div class="intake-add-row"><input id="iCondInput" type="text" placeholder="e.g. Type 2 diabetes, diagnosed 2018" onkeydown="if(event.key==='Enter')addIntakeItem('cond')"><select id="iCondStatus" style="flex:0;min-width:120px;"><option value="active">Ongoing</option><option value="resolved">Resolved</option></select><button class="btn-add-item" onclick="addIntakeItem('cond')">+ Add</button></div>
+        <div class="intake-section-label" style="margin-top:24px;">Past surgeries or hospitalizations</div>
+        <div class="intake-list" id="iSurgList"></div>
+        <div class="intake-add-row"><input id="iSurgInput" type="text" placeholder="e.g. Appendectomy, 2015" onkeydown="if(event.key==='Enter')addIntakeItem('surg')"><button class="btn-add-item" onclick="addIntakeItem('surg')">+ Add</button></div>
+        <div class="intake-nav"><button class="btn-back" onclick="prevStep(3)">← Back</button><button class="btn-next" onclick="nextStep(3)">Continue →</button></div>
+      </div>
+
+      <div class="intake-panel" id="step4">
+        <div class="intake-hero"><h2>What brings you in today?</h2><p>Describe your symptoms in your own words.</p></div>
+        <div class="intake-section-label">Reason for visit</div>
+        <div class="intake-field"><label>Main reason you're here</label><textarea id="i_reason" rows="4" placeholder="e.g. I've had a persistent cough for two weeks..."></textarea></div>
+        <div class="intake-field-row">
+          <div class="intake-field"><label>How long have you had this?</label><input id="i_duration" type="text" placeholder="e.g. 2 weeks"></div>
+          <div class="intake-field"><label>How bad is it? (1–10)</label><input id="i_severity" type="number" min="1" max="10" placeholder="1 = mild, 10 = severe"></div>
+        </div>
+        <div class="intake-field"><label>Anything else your provider should know?</label><div class="hint">Recent travel, stress, changes in sleep or diet.</div><textarea id="i_other" rows="3" placeholder="Optional..."></textarea></div>
+        <div class="intake-nav"><button class="btn-back" onclick="prevStep(4)">← Back</button><button class="btn-submit-intake" onclick="submitIntake()">Submit ✓</button></div>
+      </div>
+
+      <div class="intake-confirm" id="intakeConfirm">
+        <div class="confirm-icon">✓</div>
+        <h3 id="confirmHeading">Record created.</h3>
+        <p id="confirmBody">Your information has been saved as a new patient record.</p>
+        <button class="btn-view-record" onclick="switchTab('clinician')">View record →</button>
+        <button class="btn-view-list" onclick="goToList()">All patients</button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /screenRecord -->
+
+<!-- Propose amendment drawer -->
+<div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+<div class="drawer" id="amendDrawer">
+  <div class="drawer-header">
+    <div><h3>Propose a correction</h3><p id="drawerSubtitle">Editing record entry</p></div>
+    <button class="drawer-close" onclick="closeDrawer()">×</button>
+  </div>
+  <div class="drawer-body">
+    <div class="current-value-block"><div class="cvb-label">Current value in record</div><div class="cvb-value" id="drawerCurrentValue">—</div></div>
+    <div class="drawer-field"><label>Corrected name / value</label><input id="propName" type="text"></div>
+    <div class="drawer-field" id="propDetailField"><label>Corrected detail / dose</label><input id="propDetail" type="text"></div>
+    <div class="drawer-field"><label>Reason for correction</label><textarea id="propReason" rows="3" placeholder="e.g. Patient confirmed dose was changed before transfer..."></textarea></div>
+    <div class="drawer-field"><label>Proposed by</label><input id="propAuthor" type="text" placeholder="Dr. Name / Role"></div>
+  </div>
+  <div class="drawer-footer">
+    <button class="btn-drawer-cancel" onclick="closeDrawer()">Cancel</button>
+    <button class="btn-propose-submit" onclick="submitAmendment()">Submit for review →</button>
   </div>
 </div>
 
 <script>
-// --- CENTRALIZED APP OBJECT (PREVENTS REGRESSION) ---
-const app = {
-  patients: [{
-    id: 'p1',
-    profile: { firstName: 'Sarah', lastName: 'Chen', mrn: '48-221-9003', dob: '1988-05-14', gender: 'Female', pcp: 'Dr. Thorne' },
-    meds: [{ name: 'Metformin 500mg', sub: '1 tab daily', meta: 'SOURCE: EHR', tag: 'Active' }],
-    dxs: [], visits: [], insurance: [],
-    audit: [{ time: new Date().toLocaleString(), msg: 'Record synced from EHR.' }]
-  }],
-  activeId: 'p1',
+// ══════════════════════════════════════
+// MULTI-PATIENT STATE
+// Each patient: { id, info:{}, med:[], dx:[], visit:[], ins:[], amendments:[] }
+// ══════════════════════════════════════
+let patients = [];
+let activePatientId = null;
+let pendingTarget = null;
 
-  init() {
-    this.renderSwitcher();
-    this.renderActive();
-  },
+// Intake temp buffer — always fresh per session
+let intakeBuffer = { meds:[], allergies:[], conds:[], surgs:[] };
+// intakeMode: 'new' = creates a new patient | 'existing' = adds data to active patient
+let intakeMode = 'new';
+let intakeStep = 1;
 
-  renderSwitcher() {
-    const s = document.getElementById('patientSwitcher');
-    s.innerHTML = this.patients.map(p => `<option value="${p.id}" ${p.id === this.activeId ? 'selected':''}>${p.profile.lastName}, ${p.profile.firstName}</option>`).join('');
-  },
+// ── Helpers ──
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+function cap(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
+function activePatient(){ return patients.find(p=>p.id===activePatientId)||null; }
 
-  renderActive() {
-    const p = this.patients.find(x => x.id === this.activeId);
-    document.getElementById('dispName').innerText = `${p.profile.firstName} ${p.profile.lastName}`;
-    document.getElementById('dispMRN').innerText = `MRN: ${p.profile.mrn}`;
-    document.getElementById('dispGender').innerText = p.profile.gender;
-    document.getElementById('dispDOB').innerText = p.profile.dob;
-    document.getElementById('dispPCP').innerText = p.profile.pcp;
+// ── Theme ──
+function toggleTheme(){
+  const d=document.documentElement.getAttribute('data-theme')==='dark';
+  document.documentElement.setAttribute('data-theme',d?'light':'dark');
+  document.getElementById('themeBtn').textContent=d?'☀ Light':'☾ Dark';
+}
+if(window.matchMedia('(prefers-color-scheme: dark)').matches){
+  document.documentElement.setAttribute('data-theme','dark');
+  document.getElementById('themeBtn').textContent='☾ Dark';
+}
 
-    this.renderList('medList', p.meds);
-    this.renderList('dxList', p.dxs);
-    this.renderList('visitList', p.visits);
-    this.renderList('insList', p.insurance);
-    document.getElementById('auditList').innerHTML = p.audit.map(a => `<div>[${a.time}] ${a.msg}</div>`).join('');
-  },
+// ── Screen switching ──
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function goToList(){
+  showScreen('screenList');
+  renderPatientList();
+}
 
-  renderList(id, items) {
-    const container = document.getElementById(id);
-    container.innerHTML = items.length ? items.map(i => `<div class="entry"><div><div class="entry-title">${i.name}</div><div class="entry-sub">${i.sub}</div><div class="entry-meta">${i.meta}</div></div><span class="tag">${i.tag || 'New'}</span></div>`).join('') : '<div class="entry"><div class="entry-sub">No records.</div></div>';
-  },
-
-  openDrawer(type) {
-    const container = document.getElementById('drawerContainer');
-    const content = document.getElementById('drawerContent');
-    const p = this.patients.find(x => x.id === this.activeId);
-
-    if (type === 'profile') {
-      content.innerHTML = `
-        <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:15px;">
-          <div class="form-group"><label>First</label><input id="edF" value="${p.profile.firstName}"></div>
-          <div class="form-group"><label>Last</label><input id="edL" value="${p.profile.lastName}"></div>
-          <div class="form-group"><label>DOB</label><input id="edD" type="date" value="${p.profile.dob}"></div>
-          <div class="form-group"><label>Gender</label><select id="edG"><option ${p.profile.gender==='Female'?'selected':''}>Female</option><option ${p.profile.gender==='Male'?'selected':''}>Male</option></select></div>
-        </div>
-        <div style="margin-top:20px; display:flex; gap:10px; justify-content:flex-end;">
-          <button class="btn-sm" onclick="app.closeDrawer()">Cancel</button>
-          <button class="btn-primary" onclick="app.saveProfile()">Update Profile</button>
-        </div>`;
-    } else {
-      content.innerHTML = `
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px;">
-          <div class="form-group"><label>Entry Title</label><input id="newT" placeholder="Name/Procedure"></div>
-          <div class="form-group"><label>Details</label><input id="newS" placeholder="Instructions/Codes"></div>
-        </div>
-        <div style="margin-top:20px; display:flex; gap:10px; justify-content:flex-end;">
-          <button class="btn-sm" onclick="app.closeDrawer()">Cancel</button>
-          <button class="btn-primary" onclick="app.saveEntry('${type}')">Add to ${type}</button>
-        </div>`;
-    }
-    container.classList.add('open');
-  },
-
-  closeDrawer() { document.getElementById('drawerContainer').classList.remove('open'); },
-
-  saveProfile() {
-    const p = this.patients.find(x => x.id === this.activeId);
-    p.profile.firstName = document.getElementById('edF').value;
-    p.profile.lastName = document.getElementById('edL').value;
-    p.profile.dob = document.getElementById('edD').value;
-    p.profile.gender = document.getElementById('edG').value;
-    p.audit.push({ time: new Date().toLocaleString(), msg: 'Profile demographics updated.' });
-    this.closeDrawer(); this.renderActive(); this.renderSwitcher();
-  },
-
-  saveEntry(cat) {
-    const p = this.patients.find(x => x.id === this.activeId);
-    p[cat].push({
-      name: document.getElementById('newT').value,
-      sub: document.getElementById('newS').value,
-      meta: 'MANUAL ENTRY: ' + new Date().toLocaleDateString(),
-      tag: 'New'
-    });
-    p.audit.push({ time: new Date().toLocaleString(), msg: `New entry added to ${cat}` });
-    this.closeDrawer(); this.renderActive();
-  },
-
-  switchContext(id) { this.activeId = id; this.closeDrawer(); this.renderActive(); },
-  showTab(id) {
-    document.querySelectorAll('.main-view').forEach(v => v.classList.remove('active'));
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    document.getElementById('view-' + id).classList.add('active');
-    document.getElementById('btn-' + id).classList.add('active');
-  },
-  toggleTheme() { document.body.setAttribute('data-theme', document.body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'); },
-  createPatient() {
-    const n = { id: 'p'+Date.now(), profile: { firstName: document.getElementById('inFirst').value, lastName: document.getElementById('inLast').value, mrn: 'PENDING', dob: '', gender: '', pcp: 'None' }, meds: [], dxs: [], visits: [], insurance: [], audit: [{time: new Date().toLocaleString(), msg: 'Created'}] };
-    this.patients.push(n); this.activeId = n.id; this.renderSwitcher(); this.renderActive(); this.showTab('clinician');
+// ── Patient list ──
+function renderPatientList(){
+  const q=(document.getElementById('searchInput').value||'').toLowerCase().trim();
+  const el=document.getElementById('patientListEl');
+  const filtered=patients.filter(p=>{
+    const name=(p.info.first+' '+p.info.last).toLowerCase();
+    const mrn=(p.info.mrn||'').toLowerCase();
+    return !q||name.includes(q)||mrn.includes(q);
+  });
+  if(!filtered.length){
+    el.innerHTML=`<div class="no-results">${q?'No patients match "'+q+'"':'No patients yet. Start a new intake.'}</div>`;
+    return;
   }
-};
+  el.innerHTML=filtered.map(p=>{
+    const name=[p.info.first,p.info.last].filter(Boolean).join(' ')||'Unnamed patient';
+    const age=p.info.dob?', '+calcAge(p.info.dob)+' yrs':'';
+    const sex=p.info.sex?' · '+p.info.sex:'';
+    const openAmds=p.amendments.filter(a=>a.status==='open').length;
+    const amdBadge=openAmds?`<span class="tag tag-pending">${openAmds} pending</span>`:'';
+    return`<div class="patient-list-item" onclick="openPatient('${p.id}')">
+      <div class="pli-left">
+        <div class="pli-name">${name}</div>
+        <div class="pli-meta">${p.info.provider||'No provider assigned'}${age}${sex}</div>
+        <div class="pli-mrn">MRN: ${p.info.mrn||'—'}</div>
+      </div>
+      <div class="pli-right">${amdBadge}<span class="pli-arrow">›</span></div>
+    </div>`;
+  }).join('');
+}
 
-window.onload = () => app.init();
+function openPatient(id){
+  activePatientId=id;
+  showScreen('screenRecord');
+  switchTab('clinician');
+  renderBanner();
+  ['med','dx','visit','ins'].forEach(renderSection);
+  renderAmendments();
+  updateAmendmentBadge();
+}
+
+// ── New intake (creates new patient) ──
+function startNewIntake(){
+  // Create a blank patient shell
+  const id=uid();
+  patients.push({id,info:{first:'',last:'',mrn:'',dob:'',sex:'',blood:'',provider:''},med:[],dx:[],visit:[],ins:[],amendments:[]});
+  activePatientId=id;
+  intakeMode='new';
+  resetIntakeForm();
+  showScreen('screenRecord');
+  switchTab('intake');
+  document.getElementById('intakeNotice').innerHTML=`<strong>New patient:</strong> You are creating a new patient record. Information submitted here will be saved as a standalone record.`;
+  document.getElementById('confirmHeading').textContent='New record created.';
+  document.getElementById('confirmBody').textContent='The patient\'s information has been saved as a new record. You can view and edit it from the clinician tab.';
+}
+
+// ── Tab switching ──
+function switchTab(tab){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('view'+cap(tab)).classList.add('active');
+  document.getElementById('tab'+cap(tab)).classList.add('active');
+  if(tab==='intake') resetIntakeForm();
+}
+
+// ── Patient banner ──
+function renderBanner(){
+  const p=activePatient(); if(!p) return;
+  const i=p.info;
+  document.getElementById('displayName').textContent=[i.first,i.last].filter(Boolean).join(' ')||'Unnamed patient';
+  document.getElementById('displayMRN').textContent='MRN: '+(i.mrn||'—');
+  document.getElementById('displayDOB').textContent=i.dob?formatDate(i.dob):'—';
+  document.getElementById('displayAge').textContent=i.dob?calcAge(i.dob)+' yrs':'—';
+  document.getElementById('displaySex').textContent=i.sex||'—';
+  document.getElementById('displayBlood').textContent=i.blood||'—';
+  document.getElementById('displayProvider').textContent=i.provider||'—';
+}
+function togglePatientForm(){
+  const f=document.getElementById('patientForm'),p=activePatient();
+  if(f.classList.toggle('open')&&p){
+    document.getElementById('pFirst').value=p.info.first||'';
+    document.getElementById('pLast').value=p.info.last||'';
+    document.getElementById('pMRN').value=p.info.mrn||'';
+    document.getElementById('pDOB').value=p.info.dob||'';
+    document.getElementById('pSex').value=p.info.sex||'';
+    document.getElementById('pBlood').value=p.info.blood||'';
+    document.getElementById('pProvider').value=p.info.provider||'';
+  }
+}
+function savePatient(){
+  const p=activePatient(); if(!p) return;
+  p.info.first=document.getElementById('pFirst').value.trim();
+  p.info.last=document.getElementById('pLast').value.trim();
+  p.info.mrn=document.getElementById('pMRN').value.trim();
+  p.info.dob=document.getElementById('pDOB').value;
+  p.info.sex=document.getElementById('pSex').value;
+  p.info.blood=document.getElementById('pBlood').value;
+  p.info.provider=document.getElementById('pProvider').value.trim();
+  renderBanner();
+  document.getElementById('patientForm').classList.remove('open');
+  updateTimestamp();
+}
+function formatDate(d){if(!d)return'—';const[y,m,day]=d.split('-');return`${m}/${day}/${y}`;}
+function calcAge(dob){const t=new Date(),b=new Date(dob);let a=t.getFullYear()-b.getFullYear();if(t.getMonth()-b.getMonth()<0||(t.getMonth()===b.getMonth()&&t.getDate()<b.getDate()))a--;return a;}
+
+// ── Clinician entry forms ──
+function toggleForm(s){
+  const f=document.getElementById(s+'Form'),b=document.getElementById('add'+cap(s)+'Btn');
+  b.classList.toggle('active',f.classList.toggle('open'));
+}
+function addEntry(s){
+  const p=activePatient(); if(!p) return;
+  const now=uid(); let e={};
+  if(s==='med'){const n=document.getElementById('medName').value.trim();if(!n){document.getElementById('medName').focus();return;}e={id:now,name:n,type:document.getElementById('medType').value,dose:document.getElementById('medDose').value.trim(),severity:document.getElementById('medSeverity').value,source:document.getElementById('medSource').value};document.getElementById('medName').value=document.getElementById('medDose').value='';}
+  if(s==='dx'){const n=document.getElementById('dxName').value.trim();if(!n){document.getElementById('dxName').focus();return;}e={id:now,name:n,code:document.getElementById('dxCode').value.trim(),date:document.getElementById('dxDate').value,status:document.getElementById('dxStatus').value,source:document.getElementById('dxSource').value};document.getElementById('dxName').value=document.getElementById('dxCode').value='';}
+  if(s==='visit'){const notes=document.getElementById('visitNotes').value.trim(),date=document.getElementById('visitDate').value;if(!date&&!notes){document.getElementById('visitDate').focus();return;}e={id:now,date,type:document.getElementById('visitType').value,provider:document.getElementById('visitProvider').value.trim(),notes,source:document.getElementById('visitSource').value};document.getElementById('visitDate').value=document.getElementById('visitNotes').value=document.getElementById('visitProvider').value='';}
+  if(s==='ins'){const n=document.getElementById('insName').value.trim();if(!n){document.getElementById('insName').focus();return;}e={id:now,name:n,type:document.getElementById('insType').value,amount:document.getElementById('insAmount').value.trim(),status:document.getElementById('insStatus').value,date:document.getElementById('insDate').value,source:document.getElementById('insSource').value};document.getElementById('insName').value=document.getElementById('insAmount').value='';}
+  p[s].unshift(e); renderSection(s); updateTimestamp();
+}
+function deleteEntry(s,id){const p=activePatient();if(!p)return;p[s]=p[s].filter(e=>e.id!==id);renderSection(s);updateTimestamp();}
+
+// ── Render section ──
+function srcBadge(src){const m={patient:['source-patient','PT'],clinician:['source-clinician','MD'],system:['','SYS']};const[c,l]=m[src]||['','—'];return`<span class="source-badge ${c}">${l}</span>`;}
+function sevTag(s){return s?`<span class="tag tag-${s}">${s}</span>`:'';}
+function statTag(s){return`<span class="tag tag-${s}">${s}</span>`;}
+function entryHasAmendment(id){const p=activePatient();if(!p)return false;return p.amendments.some(a=>a.entryId===id&&a.status==='open');}
+
+function renderSection(s){
+  const p=activePatient();
+  const list=document.getElementById(s+'List'),cnt=document.getElementById(s+'Count');
+  if(!p||!p[s].length){cnt.textContent=0;list.innerHTML='<div class="empty-state">No entries yet</div>';return;}
+  cnt.textContent=p[s].length;
+  list.innerHTML=p[s].map(e=>renderEntry(s,e)).join('');
+}
+function renderEntry(s,e){
+  const hasAmd=entryHasAmendment(e.id);
+  const amdCls=hasAmd?' has-amendment':'';
+  const propBtn=`<button class="entry-action-btn btn-propose" onclick="openDrawer('${s}','${e.id}')">✎ Edit</button>`;
+  const delBtn=`<button class="entry-action-btn btn-delete" onclick="deleteEntry('${s}','${e.id}')">×</button>`;
+  if(s==='med') return`<div class="entry${amdCls}"><div class="entry-main"><div class="entry-name">${e.name} <span style="font-weight:400;color:var(--text-secondary);font-size:12px;">${e.type}</span></div><div class="entry-detail">${e.dose||'—'}</div></div><div class="entry-right">${sevTag(e.severity)}${srcBadge(e.source)}${propBtn}${delBtn}</div></div>`;
+  if(s==='dx') return`<div class="entry${amdCls}"><div class="entry-main"><div class="entry-name">${e.name}</div><div class="entry-detail">${e.code?`<span style="font-family:var(--mono);font-size:11px;">${e.code}</span> `:''} ${e.date?'· '+formatDate(e.date):''}</div></div><div class="entry-right">${statTag(e.status)}${srcBadge(e.source)}${propBtn}${delBtn}</div></div>`;
+  if(s==='visit') return`<div class="entry${amdCls}" style="flex-direction:column;align-items:stretch;"><div style="display:flex;justify-content:space-between;"><div class="entry-main"><div class="entry-name">${e.type}${e.provider?' — '+e.provider:''}</div><div class="entry-meta">${e.date?formatDate(e.date):'No date'}</div></div><div class="entry-right">${srcBadge(e.source)}${propBtn}${delBtn}</div></div>${e.notes?`<div style="margin-top:5px;font-size:13px;color:var(--text-secondary);line-height:1.5;padding:7px 9px;background:var(--bg);border-radius:4px;border-left:2px solid var(--border-strong);">${e.notes.replace(/\n/g,'<br>')}</div>`:''}</div>`;
+  if(s==='ins') return`<div class="entry${amdCls}"><div class="entry-main"><div class="entry-name">${e.name}</div><div class="entry-detail">${e.type}${e.amount?' · '+e.amount:''}${e.date?' · '+formatDate(e.date):''}</div></div><div class="entry-right">${statTag(e.status)}${srcBadge(e.source)}${propBtn}${delBtn}</div></div>`;
+  return'';
+}
+function updateTimestamp(){document.getElementById('footerTimestamp').textContent='Last updated: '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});}
+
+// ── Amendment system ──
+function openDrawer(section,entryId){
+  const p=activePatient(); if(!p) return;
+  const entry=p[section].find(e=>e.id===entryId); if(!entry) return;
+  pendingTarget={section,entryId,entry};
+  let cv='';
+  if(section==='med') cv=`${entry.name} (${entry.type})${entry.dose?' · '+entry.dose:''}`;
+  if(section==='dx')  cv=`${entry.name}${entry.code?' · '+entry.code:''}${entry.date?' · '+formatDate(entry.date):''}`;
+  if(section==='visit') cv=`${entry.type}${entry.provider?' — '+entry.provider:''}${entry.date?' · '+formatDate(entry.date):''}`;
+  if(section==='ins') cv=`${entry.name} · ${entry.type}${entry.amount?' · '+entry.amount:''}`;
+  document.getElementById('drawerCurrentValue').textContent=cv;
+  document.getElementById('drawerSubtitle').textContent='Editing: '+entry.name;
+  document.getElementById('propName').value=entry.name||'';
+  document.getElementById('propDetail').value=entry.dose||entry.code||entry.provider||entry.amount||'';
+  document.getElementById('propReason').value='';
+  document.getElementById('propAuthor').value='';
+  document.getElementById('propDetailField').style.display=(section==='med'||section==='dx'||section==='ins')?'block':'none';
+  document.getElementById('amendDrawer').classList.add('open');
+  document.getElementById('drawerOverlay').classList.add('open');
+  setTimeout(()=>document.getElementById('propName').focus(),100);
+}
+function closeDrawer(){
+  document.getElementById('amendDrawer').classList.remove('open');
+  document.getElementById('drawerOverlay').classList.remove('open');
+  pendingTarget=null;
+}
+function submitAmendment(){
+  if(!pendingTarget) return;
+  const propName=document.getElementById('propName').value.trim();
+  if(!propName){document.getElementById('propName').focus();return;}
+  const p=activePatient(); if(!p) return;
+  const {section,entryId,entry}=pendingTarget;
+  const amd={
+    id:uid(),section,entryId,status:'open',
+    timestamp:new Date().toISOString(),
+    author:document.getElementById('propAuthor').value.trim()||'Anonymous',
+    reason:document.getElementById('propReason').value.trim()||'No reason provided.',
+    before:{name:entry.name,detail:entry.dose||entry.code||entry.provider||entry.amount||''},
+    after:{name:propName,detail:document.getElementById('propDetail').value.trim()}
+  };
+  p.amendments.unshift(amd);
+  closeDrawer();
+  renderSection(section);
+  renderAmendments();
+  updateAmendmentBadge();
+  updateTimestamp();
+}
+function approveAmendment(id){
+  const p=activePatient(); if(!p) return;
+  const amd=p.amendments.find(a=>a.id===id); if(!amd||amd.status!=='open') return;
+  const entry=p[amd.section].find(e=>e.id===amd.entryId);
+  if(entry){
+    entry.name=amd.after.name;
+    if(amd.section==='med') entry.dose=amd.after.detail;
+    if(amd.section==='dx')  entry.code=amd.after.detail;
+    if(amd.section==='ins') entry.amount=amd.after.detail;
+    if(amd.section==='visit') entry.provider=amd.after.detail;
+    entry.source='clinician';
+  }
+  amd.status='approved'; amd.resolvedAt=new Date().toISOString();
+  renderSection(amd.section); renderAmendments(); updateAmendmentBadge(); updateTimestamp();
+}
+function rejectAmendment(id){
+  const p=activePatient(); if(!p) return;
+  const amd=p.amendments.find(a=>a.id===id); if(!amd||amd.status!=='open') return;
+  amd.status='rejected'; amd.resolvedAt=new Date().toISOString();
+  renderSection(amd.section); renderAmendments(); updateAmendmentBadge();
+}
+function updateAmendmentBadge(){
+  const p=activePatient();
+  const open=p?p.amendments.filter(a=>a.status==='open').length:0;
+  const badge=document.getElementById('amendmentBadge');
+  badge.textContent=open; badge.classList.toggle('visible',open>0);
+}
+function renderAmendments(){
+  const p=activePatient();
+  const el=document.getElementById('amendmentList');
+  if(!p||!p.amendments.length){
+    el.innerHTML=`<div class="empty-amendments"><div class="ea-icon">✓</div><p>No amendments yet. Use the <strong>✎ Edit</strong> button on any record entry to propose a correction.</p></div>`;
+    return;
+  }
+  el.innerHTML=p.amendments.map(a=>{
+    const rc=a.status!=='open'?' resolved':'';
+    const sl={open:'Open — awaiting review',approved:'Approved & merged',rejected:'Rejected'}[a.status]||a.status;
+    const sc={open:'status-open',approved:'status-approved',rejected:'status-rejected'}[a.status]||'';
+    const ts=new Date(a.timestamp).toLocaleString([],{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+    const rts=a.resolvedAt?new Date(a.resolvedAt).toLocaleString([],{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):'';
+    const ns=a.before.name===a.after.name,ds=a.before.detail===a.after.detail;
+    const nRow=`<div class="diff-row"><div class="diff-cell ${ns?'diff-unchanged':'diff-old'}"><div class="diff-field-label">Before</div>${a.before.name||'—'}</div><div class="diff-cell ${ns?'diff-unchanged':'diff-new'}"><div class="diff-field-label">Proposed</div>${a.after.name||'—'}</div></div>`;
+    const dRow=(a.before.detail||a.after.detail)?`<div class="diff-row"><div class="diff-cell ${ds?'diff-unchanged':'diff-old'}"><div class="diff-field-label">Detail before</div>${a.before.detail||'—'}</div><div class="diff-cell ${ds?'diff-unchanged':'diff-new'}"><div class="diff-field-label">Detail proposed</div>${a.after.detail||'—'}</div></div>`:'';
+    const actions=a.status==='open'
+      ?`<button class="btn-approve" onclick="approveAmendment('${a.id}')">✓ Approve &amp; merge</button><button class="btn-reject" onclick="rejectAmendment('${a.id}')">✕ Reject</button>`
+      :`<span class="resolved-note">Resolved ${rts}</span>`;
+    return`<div class="amendment-card${rc}"><div class="amc-header"><div class="amc-meta"><div class="amc-title">Proposed edit — ${a.before.name}</div><div class="amc-subtitle">Section: ${a.section.toUpperCase()} · By: ${a.author} · ${ts}</div></div><span class="amc-status ${sc}">${sl}</span></div><div class="diff-block"><div class="diff-label">Changes</div>${nRow}${dRow}</div><div class="amc-reason"><strong>Reason:</strong> ${a.reason}</div><div class="amc-actions">${actions}</div></div>`;
+  }).join('');
+}
+
+// ── Intake logic ──
+function resetIntakeForm(){
+  intakeBuffer={meds:[],allergies:[],conds:[],surgs:[]};
+  intakeStep=1;
+  updateStepUI();
+  ['iMedList','iAllergyList','iCondList','iSurgList'].forEach(id=>{document.getElementById(id).innerHTML='';});
+  ['i_first','i_last','i_lang','i_duration','i_reason','i_other'].forEach(id=>{document.getElementById(id).value='';});
+  ['i_dob','i_severity'].forEach(id=>{document.getElementById(id).value='';});
+  document.getElementById('i_sex').value='';
+  document.getElementById('i_blood').value='';
+  document.querySelectorAll('.intake-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('step1').classList.add('active');
+  document.getElementById('intakeConfirm').classList.remove('active');
+  document.getElementById('intakeSteps').style.display='flex';
+  ['iMedInput','iAllergyInput','iCondInput','iSurgInput'].forEach(id=>{document.getElementById(id).value='';});
+}
+function gotoStep(n){if(n>intakeStep)return;intakeStep=n;updateStepUI();}
+function nextStep(f){intakeStep=f+1;updateStepUI();window.scrollTo({top:0,behavior:'smooth'});}
+function prevStep(f){intakeStep=f-1;updateStepUI();window.scrollTo({top:0,behavior:'smooth'});}
+function updateStepUI(){
+  document.querySelectorAll('.intake-panel').forEach(p=>p.classList.remove('active'));
+  const panel=document.getElementById('step'+intakeStep);if(panel)panel.classList.add('active');
+  for(let i=1;i<=4;i++){
+    document.getElementById('stepDot'+i).className='step-dot'+(i<intakeStep?' done':i===intakeStep?' current':'');
+    if(i<4)document.getElementById('stepLine'+i).className='step-line'+(i<intakeStep?' done':'');
+  }
+}
+function addIntakeItem(type){
+  const inpMap={med:'iMedInput',allergy:'iAllergyInput',cond:'iCondInput',surg:'iSurgInput'};
+  const lstMap={med:'iMedList',allergy:'iAllergyList',cond:'iCondList',surg:'iSurgList'};
+  const keyMap={med:'meds',allergy:'allergies',cond:'conds',surg:'surgs'};
+  const inp=document.getElementById(inpMap[type]);
+  const val=inp.value.trim();if(!val){inp.focus();return;}
+  const item={id:uid(),text:val};
+  if(type==='allergy')item.severity=document.getElementById('iAllergySev').value;
+  if(type==='cond')item.status=document.getElementById('iCondStatus').value;
+  intakeBuffer[keyMap[type]].push(item);inp.value='';
+  renderIntakeList(type,lstMap[type],keyMap[type]);inp.focus();
+}
+function removeIntakeItem(type,id){
+  const keyMap={med:'meds',allergy:'allergies',cond:'conds',surg:'surgs'};
+  const lstMap={med:'iMedList',allergy:'iAllergyList',cond:'iCondList',surg:'iSurgList'};
+  intakeBuffer[keyMap[type]]=intakeBuffer[keyMap[type]].filter(i=>i.id!==id);
+  renderIntakeList(type,lstMap[type],keyMap[type]);
+}
+function renderIntakeList(type,listId,key){
+  const el=document.getElementById(listId);
+  if(!intakeBuffer[key].length){el.innerHTML='';return;}
+  el.innerHTML=intakeBuffer[key].map(item=>{
+    const badge=item.severity?`<span class="tag tag-${item.severity}" style="font-size:10px;">${item.severity}</span>`:item.status?`<span class="tag tag-${item.status}" style="font-size:10px;">${item.status}</span>`:'';
+    return`<div class="intake-list-item"><span>${item.text}</span>${badge}<button class="remove-item" onclick="removeIntakeItem('${type}','${item.id}')">×</button></div>`;
+  }).join('');
+}
+
+function submitIntake(){
+  const p=activePatient(); if(!p) return;
+  const now=uid();
+  // Apply demographics to THIS patient's info
+  const first=document.getElementById('i_first').value.trim();
+  const last=document.getElementById('i_last').value.trim();
+  if(first)p.info.first=first;
+  if(last)p.info.last=last;
+  const dob=document.getElementById('i_dob').value,sex=document.getElementById('i_sex').value,blood=document.getElementById('i_blood').value;
+  if(dob)p.info.dob=dob;if(sex)p.info.sex=sex;if(blood)p.info.blood=blood;
+  // Add clinical data to THIS patient only
+  intakeBuffer.meds.forEach(m=>p.med.unshift({id:now+m.id,name:m.text,type:'Medication',dose:'',severity:'',source:'patient'}));
+  intakeBuffer.allergies.forEach(a=>p.med.unshift({id:now+a.id,name:a.text,type:'Allergy',dose:'',severity:a.severity||'medium',source:'patient'}));
+  intakeBuffer.conds.forEach(c=>p.dx.unshift({id:now+c.id,name:c.text,code:'',date:'',status:c.status||'active',source:'patient'}));
+  intakeBuffer.surgs.forEach(s=>p.dx.unshift({id:now+s.id,name:s.text,code:'',date:'',status:'resolved',source:'patient'}));
+  const reason=document.getElementById('i_reason').value.trim();
+  const duration=document.getElementById('i_duration').value.trim();
+  const severity=document.getElementById('i_severity').value.trim();
+  const other=document.getElementById('i_other').value.trim();
+  if(reason||other){
+    let notes='';
+    if(reason)notes+=`Chief complaint: ${reason}`;
+    if(duration)notes+=`\nDuration: ${duration}`;
+    if(severity)notes+=`\nSeverity: ${severity}/10`;
+    if(other)notes+=`\nAdditional notes: ${other}`;
+    p.visit.unshift({id:now+'v',date:new Date().toISOString().split('T')[0],type:'Patient intake',provider:'',notes:notes.trim(),source:'patient'});
+  }
+  renderBanner();
+  ['med','dx','visit','ins'].forEach(renderSection);
+  updateTimestamp();
+  // Show confirmation
+  document.querySelectorAll('.intake-panel').forEach(ip=>ip.classList.remove('active'));
+  document.getElementById('intakeSteps').style.display='none';
+  document.getElementById('intakeConfirm').classList.add('active');
+}
+
+// ══════════════════════════════
+// SAMPLE DATA
+// ══════════════════════════════
+(function seedSampleData(){
+  const p1={
+    id:'sample1',
+    info:{first:'Maria',last:'Santos',mrn:'04-817-3392',dob:'1968-03-14',sex:'Female',blood:'O+',provider:'Dr. Keisha Omondi, MD'},
+    med:[
+      {id:'s1',name:'Metformin 500mg',type:'Medication',dose:'Twice daily with meals',severity:'',source:'system'},
+      {id:'s2',name:'Lisinopril 10mg',type:'Medication',dose:'Once daily',severity:'',source:'clinician'},
+      {id:'s3',name:'Atorvastatin 20mg',type:'Medication',dose:'Once daily at bedtime',severity:'',source:'clinician'},
+      {id:'s4',name:'Penicillin',type:'Allergy',dose:'',severity:'high',source:'patient'},
+      {id:'s5',name:'Sulfa drugs',type:'Allergy',dose:'',severity:'medium',source:'patient'},
+      {id:'s6',name:'Ibuprofen',type:'Allergy',dose:'GI distress',severity:'low',source:'patient'},
+    ],
+    dx:[
+      {id:'d1',name:'Type 2 Diabetes Mellitus',code:'E11.9',date:'2014-06-01',status:'active',source:'system'},
+      {id:'d2',name:'Essential Hypertension',code:'I10',date:'2016-02-20',status:'active',source:'clinician'},
+      {id:'d3',name:'Hyperlipidemia',code:'E78.5',date:'2016-02-20',status:'active',source:'clinician'},
+      {id:'d4',name:'Appendectomy',code:'Z87.39',date:'1993-08-10',status:'resolved',source:'patient'},
+      {id:'d5',name:'Gestational diabetes (2nd pregnancy)',code:'O24.419',date:'2001-05-01',status:'resolved',source:'system'},
+      {id:'d6',name:'Generalized anxiety disorder',code:'F41.1',date:'2020-11-03',status:'active',source:'clinician'},
+    ],
+    visit:[
+      {id:'v1',date:'2025-11-18',type:'Primary care',provider:'Dr. Keisha Omondi — Riverside Family Health',notes:'Chief complaint: Routine diabetes follow-up. HbA1c 7.4%, down from 8.1% in July. BP 138/86. Patient reports improved dietary adherence. Continuing current medication regimen. Referral placed for ophthalmology annual exam.',source:'clinician'},
+      {id:'v2',date:'2025-07-09',type:'Primary care',provider:'Dr. Keisha Omondi — Riverside Family Health',notes:'Chief complaint: HbA1c check and medication review. HbA1c 8.1% — elevated. Counseled on diet and exercise. Increased Metformin from 500mg once daily to 500mg twice daily. Follow-up in 4 months.',source:'clinician'},
+      {id:'v3',date:'2025-03-02',type:'Emergency',provider:'St. Augustine Medical Center — ED',notes:'Presented with chest tightness and shortness of breath. EKG and troponins negative. Diagnosis: Anxiety/panic attack. Discharged with instructions to follow up with PCP. No cardiac events identified.',source:'system'},
+      {id:'v4',date:'2024-10-15',type:'Specialist',provider:'Dr. Priya Nair — Endocrinology, City Medical Group',notes:'Annual endocrinology consult. Patient expressing frustration with data inconsistencies across her chart between Riverside and City Medical records. Noted duplicate medication entries from prior care transition. Recommend unified record review.',source:'clinician'},
+      {id:'v5',date:'2023-06-28',type:'Patient intake',provider:'',notes:'Started care at new facility after insurance change forced provider switch. Patient self-reported full medication list — no prior records received at time of intake. Significant gaps noted in historical record.',source:'patient'},
+    ],
+    ins:[
+      {id:'i1',name:'BlueCross BlueShield — Plan ID: BCBS-9934-M',type:'Primary insurance',amount:'Group: EMX-004412',status:'covered',date:'2025-01-01',source:'system'},
+      {id:'i2',name:'Claim #8821-A — Metformin refill (90 day)',type:'Claim',amount:'$12.00 copay',status:'covered',date:'2025-10-01',source:'system'},
+      {id:'i3',name:'Prior Auth — Atorvastatin brand name',type:'Prior authorization',amount:'PA Ref: 44821',status:'denied',date:'2025-09-14',source:'system'},
+      {id:'i4',name:'Claim #7703-B — Emergency visit 03/02/2025',type:'Claim',amount:'$340.00 billed',status:'pending',date:'2025-03-15',source:'system'},
+      {id:'i5',name:'Secondary — Medicaid Supplemental',type:'Secondary insurance',amount:'ID: MC-0042-2024',status:'covered',date:'2024-01-01',source:'patient'},
+    ],
+    amendments:[{
+      id:'a1',section:'med',entryId:'s1',status:'open',
+      timestamp:new Date(Date.now()-1000*60*47).toISOString(),
+      author:'Dr. Priya Nair, Endocrinology',
+      reason:'Patient confirmed at Oct 2024 visit that Metformin was increased to 1000mg twice daily by previous provider before insurance transition. Current entry reflects the prior lower dose.',
+      before:{name:'Metformin 500mg',detail:'Twice daily with meals'},
+      after:{name:'Metformin 1000mg',detail:'Twice daily with meals'}
+    }]
+  };
+
+  const p2={
+    id:'sample2',
+    info:{first:'James',last:'Okafor',mrn:'07-332-1108',dob:'1951-09-22',sex:'Male',blood:'A+',provider:'Dr. Ramona Vásquez, MD'},
+    med:[
+      {id:'m1',name:'Warfarin 5mg',type:'Medication',dose:'Once daily — INR monitored monthly',severity:'',source:'clinician'},
+      {id:'m2',name:'Metoprolol 25mg',type:'Medication',dose:'Twice daily',severity:'',source:'system'},
+      {id:'m3',name:'Furosemide 40mg',type:'Medication',dose:'Once daily in morning',severity:'',source:'clinician'},
+      {id:'m4',name:'Latex',type:'Allergy',dose:'',severity:'high',source:'patient'},
+    ],
+    dx:[
+      {id:'dx1',name:'Atrial fibrillation',code:'I48.91',date:'2019-03-10',status:'active',source:'system'},
+      {id:'dx2',name:'Congestive heart failure',code:'I50.9',date:'2021-07-14',status:'active',source:'clinician'},
+      {id:'dx3',name:'Chronic kidney disease Stage 3',code:'N18.3',date:'2022-01-05',status:'active',source:'clinician'},
+      {id:'dx4',name:'Hip replacement — left',code:'Z96.641',date:'2017-04-18',status:'resolved',source:'patient'},
+    ],
+    visit:[
+      {id:'vv1',date:'2025-10-30',type:'Primary care',provider:'Dr. Ramona Vásquez — Northside Internal Medicine',notes:'Routine cardiology follow-up. INR 2.4 — within therapeutic range. Mild bilateral edema noted. Furosemide dose maintained. Patient reports fatigue on exertion. Echocardiogram ordered.',source:'clinician'},
+      {id:'vv2',date:'2025-04-11',type:'Inpatient',provider:'City General Hospital — Cardiology',notes:'Admitted for acute decompensated heart failure. IV diuresis administered. Discharged after 4 days with updated medication regimen. Significant data gaps on admission — records from prior facility not received.',source:'system'},
+    ],
+    ins:[
+      {id:'ii1',name:'Medicare Part B — ID: 1EG4-TE5-MK72',type:'Primary insurance',amount:'',status:'covered',date:'2023-01-01',source:'system'},
+      {id:'ii2',name:'Claim #CCF-0291 — Inpatient stay Apr 2025',type:'Claim',amount:'$12,400 billed',status:'pending',date:'2025-05-01',source:'system'},
+    ],
+    amendments:[]
+  };
+
+  patients.push(p1,p2);
+})();
+
+// ── Boot ──
+renderPatientList();
 </script>
 </body>
 </html>
