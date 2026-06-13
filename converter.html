@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum Distance Converter</title>
+    <!-- Importing tech-style fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@300;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-glow: #00f2ff;
+            --secondary-glow: #bc13fe;
+            --glass-bg: rgba(20, 20, 30, 0.6);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --text-color: #e0e0e0;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #050505;
+            background-image: 
+                linear-gradient(rgba(0, 242, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(188, 19, 254, 0.05) 1px, transparent 1px);
+            background-size: 40px 40px;
+            font-family: 'Rajdhani', sans-serif;
+            overflow: hidden;
+        }
+
+        /* Floating Orb Background Effect */
+        .orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            z-index: -1;
+            animation: float 10s infinite ease-in-out;
+        }
+        .orb-1 { width: 300px; height: 300px; background: var(--secondary-glow); top: -50px; left: -50px; opacity: 0.4; }
+        .orb-2 { width: 400px; height: 400px; background: var(--primary-glow); bottom: -100px; right: -100px; opacity: 0.3; animation-delay: -5s; }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0); }
+            50% { transform: translate(20px, 40px); }
+        }
+
+        /* The Main Glass Card */
+        .hud-card {
+            width: 380px;
+            padding: 40px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            box-shadow: 
+                0 0 40px rgba(0, 242, 255, 0.1),
+                inset 0 0 20px rgba(255, 255, 255, 0.05);
+            position: relative;
+            overflow: hidden;
+            transform-style: preserve-3d;
+        }
+
+        /* Top "Scanline" decoration */
+        .hud-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--primary-glow), transparent);
+            animation: scanline 3s linear infinite;
+        }
+
+        @keyframes scanline {
+            0% { top: 0%; opacity: 0; }
+            50% { opacity: 1; }
+            100% { top: 100%; opacity: 0; }
+        }
+
+        h1 {
+            font-family: 'Orbitron', sans-serif;
+            color: white;
+            text-align: center;
+            margin: 0 0 10px 0;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            text-shadow: 0 0 10px var(--primary-glow);
+            font-size: 1.5rem;
+        }
+
+        .status {
+            text-align: center;
+            color: var(--primary-glow);
+            font-size: 0.8rem;
+            letter-spacing: 3px;
+            margin-bottom: 30px;
+            opacity: 0.8;
+        }
+
+        /* Input Styling */
+        .input-group {
+            margin-bottom: 25px;
+            position: relative;
+        }
+
+        label {
+            display: block;
+            color: #aaa;
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        input, select {
+            width: 100%;
+            background: rgba(0,0,0,0.3);
+            border: none;
+            border-bottom: 2px solid #333;
+            color: white;
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 1.2rem;
+            padding: 10px 5px;
+            transition: 0.3s;
+            box-sizing: border-box;
+            outline: none;
+        }
+
+        input:focus, select:focus {
+            border-bottom: 2px solid var(--primary-glow);
+            box-shadow: 0 10px 20px -10px rgba(0, 242, 255, 0.2);
+        }
+
+        /* Button Styling */
+        button {
+            width: 100%;
+            padding: 15px;
+            margin-top: 20px;
+            background: linear-gradient(90deg, rgba(0, 242, 255, 0.1), rgba(188, 19, 254, 0.1));
+            border: 1px solid var(--primary-glow);
+            color: white;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: bold;
+            letter-spacing: 2px;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: 0.3s;
+            clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+        }
+
+        button:hover {
+            background: linear-gradient(90deg, rgba(0, 242, 255, 0.3), rgba(188, 19, 254, 0.3));
+            box-shadow: 0 0 20px rgba(0, 242, 255, 0.4);
+            text-shadow: 0 0 8px white;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        /* Result Area */
+        .result-container {
+            margin-top: 30px;
+            background: rgba(0,0,0,0.4);
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 3px solid var(--secondary-glow);
+            position: relative;
+            overflow: hidden;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: 0.5s ease-out;
+        }
+
+        .result-container.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .result-label {
+            font-size: 0.8rem;
+            color: #aaa;
+            text-transform: uppercase;
+        }
+
+        .result-value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2.2rem;
+            color: var(--primary-glow);
+            text-shadow: 0 0 15px rgba(0, 242, 255, 0.5);
+        }
+
+        .unit-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 0.6rem;
+            padding: 2px 6px;
+            border: 1px solid var(--secondary-glow);
+            color: var(--secondary-glow);
+            border-radius: 4px;
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- Background Orbs -->
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+
+    <div class="hud-card">
+        <h1>DISTANCE</h1>
+        <div class="status">SYSTEM READY // V.2.0.4</div>
+
+        <div class="input-group">
+            <label>Input Value</label>
+            <input type="number" id="inputValue" placeholder="0.00">
+        </div>
+
+        <div class="input-group">
+            <label>Vector Direction</label>
+            <select id="direction">
+                <option value="km-mi">KILOMETERS <span style="font-size:0.8em">➔</span> MILES</option>
+                <option value="mi-km">MILES <span style="font-size:0.8em">➔</span> KILOMETERS</option>
+            </select>
+        </div>
+
+        <button onclick="calculate()">INITIATE CONVERSION</button>
+
+        <div class="result-container" id="resultContainer">
+            <div class="result-label">CONVERTED OUTPUT</div>
+            <div class="result-value" id="resultValue">0.00</div>
+            <div class="unit-badge" id="resultUnit">MILES</div>
+        </div>
+    </div>
+
+    <script>
+        // Animation logic
+        function animateValue(obj, start, end, duration) {
+            let startTimestamp = null;
+            const step = (timestamp) => {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                // Ease-out effect
+                const easeOut = 1 - Math.pow(1 - progress, 3);
+                obj.innerHTML = (start + (end - start) * easeOut).toFixed(4);
+                if (progress < 1) {
+                    window.requestAnimationFrame(step);
+                }
+            };
+            window.requestAnimationFrame(step);
+        }
+
+        function calculate() {
+            const input = document.getElementById('inputValue');
+            const direction = document.getElementById('direction').value;
+            const resultContainer = document.getElementById('resultContainer');
+            const resultValue = document.getElementById('resultValue');
+            const resultUnit = document.getElementById('resultUnit');
+            const btn = document.querySelector('button');
+
+            // Simple validation
+            if (input.value === "" || isNaN(input.value)) return;
+            const val = parseFloat(input.value);
+
+            // Button loading state
+            btn.innerHTML = "PROCESSING...";
+            btn.style.letterSpacing = "0";
+            
+            setTimeout(() => {
+                let finalVal = 0;
+                let finalUnit = "";
+
+                if (direction === 'km-mi') {
+                    finalVal = val * 0.621371;
+                    finalUnit = "MILES";
+                } else {
+                    finalVal = val * 1.60934;
+                    finalUnit = "KILOMETERS";
+                }
+
+                // Update UI
+                resultUnit.innerText = finalUnit;
+                resultContainer.classList.add('visible');
+                
+                // Animate the number counting up from 0
+                animateValue(resultValue, 0, finalVal, 1000);
+
+                // Reset button
+                btn.innerHTML = "INITIATE CONVERSION";
+                btn.style.letterSpacing = "2px";
+            }, 600); // Simulate processing time
+        }
+    </script>
+</body>
+</html>

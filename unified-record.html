@@ -51,10 +51,12 @@
   .list-hero h2{font-size:22px;font-weight:600;letter-spacing:-.01em;margin-bottom:4px;}
   .list-hero p{font-size:14px;color:var(--text-secondary);}
 
-  .search-bar{display:flex;gap:10px;margin-bottom:24px;}
+  .search-bar{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
   .search-input{font-family:var(--sans);font-size:15px;padding:11px 16px;border:1.5px solid var(--border-strong);border-radius:var(--radius);background:var(--surface);color:var(--text-primary);flex:1;outline:none;transition:border-color .15s;}
   .search-input:focus{border-color:var(--accent-mid);}
   .btn-new-patient{font-family:var(--sans);font-size:14px;font-weight:600;padding:11px 20px;background:var(--accent);color:white;border:none;border-radius:var(--radius);cursor:pointer;white-space:nowrap;transition:opacity .15s;}
+  .btn-fhir-import{font-family:var(--sans);font-size:14px;font-weight:500;padding:11px 18px;background:transparent;border:1.5px solid var(--accent-mid);color:var(--accent-mid);border-radius:var(--radius);cursor:pointer;white-space:nowrap;transition:all .15s;}
+  .btn-fhir-import:hover{background:var(--accent-light);}
   .btn-new-patient:hover{opacity:.88;}
 
   .patient-list{display:flex;flex-direction:column;gap:10px;}
@@ -272,6 +274,32 @@
   .intake-confirm p{font-size:15px;color:var(--text-secondary);margin-bottom:24px;line-height:1.6;}
   .btn-view-record{font-family:var(--sans);font-size:14px;font-weight:600;padding:11px 24px;background:var(--accent);color:white;border:none;border-radius:var(--radius);cursor:pointer;margin:0 6px;}
   .btn-view-list{font-family:var(--sans);font-size:14px;font-weight:500;padding:11px 20px;background:transparent;color:var(--text-secondary);border:1px solid var(--border-strong);border-radius:var(--radius);cursor:pointer;}
+
+  /* ── AI Handoff Modal ── */
+  .handoff-modal-wrap{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:400;display:none;align-items:center;justify-content:center;padding:20px;}
+  .handoff-modal-wrap.open{display:flex;}
+  .handoff-modal{background:var(--surface);border-radius:var(--radius-lg);width:100%;max-width:700px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;}
+  .handoff-header{padding:18px 22px 14px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;}
+  .handoff-header h3{font-size:16px;font-weight:600;}
+  .handoff-header p{font-size:13px;color:var(--text-secondary);margin-top:2px;}
+  .handoff-body{padding:18px 22px;flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:14px;}
+  .handoff-footer{padding:14px 22px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end;align-items:center;}
+  .handoff-output{font-family:var(--mono);font-size:13px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;line-height:1.8;white-space:pre-wrap;min-height:120px;color:var(--text-primary);display:none;}
+  .handoff-output.visible{display:block;}
+  .handoff-thinking{display:none;align-items:center;gap:10px;font-size:13px;color:var(--text-muted);padding:8px 0;}
+  .handoff-thinking.visible{display:flex;}
+  .thinking-dots span{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--accent-mid);animation:tdot .9s infinite;}
+  .thinking-dots span:nth-child(2){animation-delay:.2s;}
+  .thinking-dots span:nth-child(3){animation-delay:.4s;}
+  @keyframes tdot{0%,80%,100%{opacity:.2;transform:scale(.8)}40%{opacity:1;transform:scale(1)}}
+  .btn-copy-note{font-family:var(--sans);font-size:13px;padding:8px 16px;background:transparent;color:var(--text-secondary);border:1px solid var(--border-strong);border-radius:var(--radius);cursor:pointer;display:none;}
+  .btn-copy-note.visible{display:inline-block;}
+  .btn-copy-note:hover{background:var(--bg);}
+  .btn-generate{font-family:var(--sans);font-size:14px;font-weight:600;padding:9px 22px;background:var(--success);color:white;border:none;border-radius:var(--radius);cursor:pointer;}
+  .btn-generate:hover{opacity:.88;}
+  .btn-generate:disabled{opacity:.5;cursor:default;}
+  .handoff-options{display:flex;gap:16px;flex-wrap:wrap;}
+  .handoff-options label{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-secondary);cursor:pointer;}
 </style>
 </head>
 <body>
@@ -299,7 +327,11 @@
     </div>
     <div class="search-bar">
       <input class="search-input" id="searchInput" type="text" placeholder="Search by name or MRN…" oninput="renderPatientList()" autocomplete="off">
-      <button class="btn-new-patient" onclick="startNewIntake()">+ New patient intake</button>
+      <button class="btn-new-patient" onclick="startNewIntake()">+ New patient</button>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;">
+      <button class="btn-fhir-import" onclick="openFhirModal()">⬇ Import FHIR record</button>
+      <button class="btn-fhir-import" onclick="openSmartDemo()" style="border-color:var(--success);color:var(--success);background:var(--success-light);">⟳ SMART on FHIR demo</button>
     </div>
     <div class="patient-list" id="patientListEl"></div>
   </div>
@@ -333,6 +365,8 @@
       </div>
       <div class="banner-actions">
         <button class="edit-patient-btn" onclick="togglePatientForm()">Edit</button>
+        <button class="edit-patient-btn" style="color:var(--success);border-color:var(--success);font-weight:600;" onclick="openHandoffModal()">✦ AI handoff note</button>
+        <button class="edit-patient-btn" style="color:var(--accent-mid);border-color:var(--accent-mid);" onclick="openFhirModal()">⬇ FHIR import</button>
       </div>
     </div>
 
@@ -552,6 +586,25 @@ let patients = [];
 let activePatientId = null;
 let pendingTarget = null;
 
+// ── Persistence ──
+const STORAGE_KEY = 'unified-record-v1';
+function saveState(){
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify({patients, activePatientId})); }catch(e){}
+}
+function loadState(){
+  try{
+    const raw=localStorage.getItem(STORAGE_KEY);
+    if(!raw) return false;
+    const saved=JSON.parse(raw);
+    if(saved.patients && saved.patients.length){
+      patients=saved.patients;
+      activePatientId=saved.activePatientId||null;
+      return true;
+    }
+  }catch(e){}
+  return false;
+}
+
 // Intake temp buffer — always fresh per session
 let intakeBuffer = { meds:[], allergies:[], conds:[], surgs:[] };
 // intakeMode: 'new' = creates a new patient | 'existing' = adds data to active patient
@@ -684,6 +737,7 @@ function savePatient(){
   renderBanner();
   document.getElementById('patientForm').classList.remove('open');
   updateTimestamp();
+  saveState();
 }
 function formatDate(d){if(!d)return'—';const[y,m,day]=d.split('-');return`${m}/${day}/${y}`;}
 function calcAge(dob){const t=new Date(),b=new Date(dob);let a=t.getFullYear()-b.getFullYear();if(t.getMonth()-b.getMonth()<0||(t.getMonth()===b.getMonth()&&t.getDate()<b.getDate()))a--;return a;}
@@ -702,7 +756,7 @@ function addEntry(s){
   if(s==='ins'){const n=document.getElementById('insName').value.trim();if(!n){document.getElementById('insName').focus();return;}e={id:now,name:n,type:document.getElementById('insType').value,amount:document.getElementById('insAmount').value.trim(),status:document.getElementById('insStatus').value,date:document.getElementById('insDate').value,source:document.getElementById('insSource').value};document.getElementById('insName').value=document.getElementById('insAmount').value='';}
   p[s].unshift(e); renderSection(s); updateTimestamp();
 }
-function deleteEntry(s,id){const p=activePatient();if(!p)return;p[s]=p[s].filter(e=>e.id!==id);renderSection(s);updateTimestamp();}
+function deleteEntry(s,id){const p=activePatient();if(!p)return;p[s]=p[s].filter(e=>e.id!==id);renderSection(s);updateTimestamp();saveState();}
 
 // ── Render section ──
 function srcBadge(src){const m={patient:['source-patient','PT'],clinician:['source-clinician','MD'],system:['','SYS']};const[c,l]=m[src]||['','—'];return`<span class="source-badge ${c}">${l}</span>`;}
@@ -728,7 +782,7 @@ function renderEntry(s,e){
   if(s==='ins') return`<div class="entry${amdCls}"><div class="entry-main"><div class="entry-name">${e.name}</div><div class="entry-detail">${e.type}${e.amount?' · '+e.amount:''}${e.date?' · '+formatDate(e.date):''}</div></div><div class="entry-right">${statTag(e.status)}${srcBadge(e.source)}${propBtn}${delBtn}</div></div>`;
   return'';
 }
-function updateTimestamp(){document.getElementById('footerTimestamp').textContent='Last updated: '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});}
+function updateTimestamp(){document.getElementById('footerTimestamp').textContent='Last updated: '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});saveState();}
 
 // ── Amendment system ──
 function openDrawer(section,entryId){
@@ -790,13 +844,13 @@ function approveAmendment(id){
     entry.source='clinician';
   }
   amd.status='approved'; amd.resolvedAt=new Date().toISOString();
-  renderSection(amd.section); renderAmendments(); updateAmendmentBadge(); updateTimestamp();
+  renderSection(amd.section); renderAmendments(); updateAmendmentBadge(); updateTimestamp(); saveState();
 }
 function rejectAmendment(id){
   const p=activePatient(); if(!p) return;
   const amd=p.amendments.find(a=>a.id===id); if(!amd||amd.status!=='open') return;
   amd.status='rejected'; amd.resolvedAt=new Date().toISOString();
-  renderSection(amd.section); renderAmendments(); updateAmendmentBadge();
+  renderSection(amd.section); renderAmendments(); updateAmendmentBadge(); saveState();
 }
 function updateAmendmentBadge(){
   const p=activePatient();
@@ -920,7 +974,7 @@ function submitIntake(){
 // ══════════════════════════════
 // SAMPLE DATA
 // ══════════════════════════════
-(function seedSampleData(){
+function seedSampleData(){
   const p1={
     id:'sample1',
     info:{first:'Maria',last:'Santos',mrn:'04-817-3392',dob:'1968-03-14',sex:'Female',blood:'O+',provider:'Dr. Keisha Omondi, MD'},
@@ -991,10 +1045,540 @@ function submitIntake(){
   };
 
   patients.push(p1,p2);
-})();
+  saveState();
+}
 
 // ── Boot ──
+const hadSaved = loadState();
+if(!hadSaved){
+  // Seed sample data only on first load
+  seedSampleData();
+}
 renderPatientList();
+
+// ════════════════════════════════
+// FHIR IMPORT
+// ════════════════════════════════
+function openFhirModal(){
+  document.getElementById('fhirOverlay').classList.add('open');
+  document.getElementById('fhirModal').classList.add('open');
+  document.getElementById('fhirLog').innerHTML='';
+  document.getElementById('fhirLogWrap').style.display='none';
+  document.getElementById('fhirImportBtn').textContent='Connect & import →';
+  document.getElementById('fhirImportBtn').disabled=false;
+}
+function closeFhirModal(){
+  document.getElementById('fhirOverlay').classList.remove('open');
+  document.getElementById('fhirModal').classList.remove('open');
+}
+
+const SAMPLE_FHIR_BUNDLE = {
+  resourceType:'Bundle', type:'searchset',
+  entry:[
+    { resource:{ resourceType:'Patient', id:'fhir-pt-001',
+        name:[{family:'Chen',given:['David','Wei']}],
+        birthDate:'1979-05-30', gender:'male',
+        identifier:[{type:{coding:[{code:'MR'}]},value:'11-204-8843'}],
+        telecom:[{system:'phone',value:'(312) 555-0198'}]
+    }},
+    { resource:{ resourceType:'MedicationRequest', id:'mr1', status:'active',
+        medicationCodeableConcept:{text:'Sertraline 50mg',coding:[{display:'Sertraline 50mg'}]},
+        dosageInstruction:[{text:'Once daily in the morning'}]
+    }},
+    { resource:{ resourceType:'MedicationRequest', id:'mr2', status:'active',
+        medicationCodeableConcept:{text:'Omeprazole 20mg',coding:[{display:'Omeprazole 20mg'}]},
+        dosageInstruction:[{text:'Once daily before breakfast'}]
+    }},
+    { resource:{ resourceType:'MedicationRequest', id:'mr3', status:'active',
+        medicationCodeableConcept:{text:'Albuterol inhaler',coding:[{display:'Albuterol 90mcg/actuation'}]},
+        dosageInstruction:[{text:'2 puffs every 4–6 hours as needed'}]
+    }},
+    { resource:{ resourceType:'AllergyIntolerance', id:'ai1', criticality:'high',
+        code:{text:'Shellfish',coding:[{display:'Shellfish allergy'}]},
+        reaction:[{description:'Anaphylaxis — requires epinephrine'}]
+    }},
+    { resource:{ resourceType:'AllergyIntolerance', id:'ai2', criticality:'low',
+        code:{text:'Codeine',coding:[{display:'Codeine'}]},
+        reaction:[{description:'Nausea and vomiting'}]
+    }},
+    { resource:{ resourceType:'Condition', id:'c1',
+        code:{text:'Major depressive disorder, recurrent',coding:[{code:'F33.1',display:'Major depressive disorder, recurrent, moderate'}]},
+        clinicalStatus:{coding:[{code:'active'}]}, onsetDateTime:'2021-03-15'
+    }},
+    { resource:{ resourceType:'Condition', id:'c2',
+        code:{text:'Asthma, mild persistent',coding:[{code:'J45.30',display:'Mild persistent asthma'}]},
+        clinicalStatus:{coding:[{code:'active'}]}, onsetDateTime:'2005-09-01'
+    }},
+    { resource:{ resourceType:'Condition', id:'c3',
+        code:{text:'Gastroesophageal reflux disease',coding:[{code:'K21.0',display:'GERD with esophagitis'}]},
+        clinicalStatus:{coding:[{code:'active'}]}, recordedDate:'2018-11-20'
+    }},
+    { resource:{ resourceType:'Condition', id:'c4',
+        code:{text:'ACL repair — right knee',coding:[{code:'Z87.39',display:'Personal history of musculoskeletal disorders'}]},
+        clinicalStatus:{coding:[{code:'resolved'}]}, onsetDateTime:'2012-06-10'
+    }},
+    { resource:{ resourceType:'Encounter', id:'e1',
+        status:'finished', period:{start:'2025-09-22T09:00:00Z'},
+        type:[{text:'Primary care'}],
+        participant:[{individual:{display:'Dr. Angela Torres — Lakeview Medical Group'}}],
+        reasonCode:[{text:'Follow-up: depression management. PHQ-9 score improved from 14 to 8. Continuing Sertraline 50mg. Patient reports better sleep and reduced anhedonia. Next follow-up in 3 months.'}]
+    }},
+    { resource:{ resourceType:'Encounter', id:'e2',
+        status:'finished', period:{start:'2025-04-03T14:30:00Z'},
+        type:[{text:'Specialist'}],
+        participant:[{individual:{display:'Dr. Marcus Webb — Pulmonology Associates'}}],
+        reasonCode:[{text:'Asthma review. Spirometry FEV1/FVC 0.74. Current inhaler regimen adequate. No step-up required. Trigger avoidance counseling provided. Patient noted data from prior pulmonologist unavailable at this visit — records from prior provider never transferred.'}]
+    }},
+    { resource:{ resourceType:'Encounter', id:'e3',
+        status:'finished', period:{start:'2024-12-10T11:00:00Z'},
+        type:[{text:'Telehealth'}],
+        participant:[{individual:{display:'Dr. Angela Torres — Lakeview Medical Group'}}],
+        reasonCode:[{text:'Routine med check and refill. No acute complaints. All medications continued as prescribed.'}]
+    }},
+    { resource:{ resourceType:'Coverage', id:'cov1',
+        status:'active',
+        payor:[{display:'Aetna Health — Plan ID: AET-GRP-7741'}],
+        subscriberId:'AET-88302-DC',
+        period:{start:'2024-01-01'}
+    }}
+  ]
+};
+
+function parseFhirBundle(bundle, opts){
+  const p={first:'',last:'',mrn:'',dob:'',sex:'',blood:'',provider:''};
+  const med=[],dx=[],visit=[],ins=[];
+  const log=[];
+  for(const entry of (bundle.entry||[])){
+    const r=entry.resource; if(!r) continue;
+    if(r.resourceType==='Patient'){
+      const n=r.name?.[0];
+      p.first=n?.given?.[0]||''; p.last=n?.family||'';
+      p.dob=r.birthDate||'';
+      p.sex=r.gender?r.gender.charAt(0).toUpperCase()+r.gender.slice(1):'';
+      const mrnId=r.identifier?.find(i=>i.type?.coding?.[0]?.code==='MR');
+      p.mrn=mrnId?.value||r.id||'';
+      log.push('✓ Patient: '+p.first+' '+p.last+' (MRN: '+p.mrn+')');
+    }
+    if(opts.meds && r.resourceType==='MedicationRequest'){
+      const name=r.medicationCodeableConcept?.text||r.medicationCodeableConcept?.coding?.[0]?.display||'Unknown';
+      const dose=r.dosageInstruction?.[0]?.text||'';
+      med.push({id:uid(),name,type:'Medication',dose,severity:'',source:'system'});
+      log.push('  ↳ MedicationRequest: '+name);
+    }
+    if(opts.meds && r.resourceType==='AllergyIntolerance'){
+      const name=r.code?.text||r.code?.coding?.[0]?.display||'Unknown allergen';
+      const sev=r.criticality==='high'?'high':r.criticality==='low'?'low':'medium';
+      const reaction=r.reaction?.[0]?.description||'';
+      med.push({id:uid(),name,type:'Allergy',dose:reaction,severity:sev,source:'system'});
+      log.push('  ↳ AllergyIntolerance: '+name+' ('+sev+')');
+    }
+    if(opts.conditions && r.resourceType==='Condition'){
+      const name=r.code?.text||r.code?.coding?.[0]?.display||'Unknown condition';
+      const code=r.code?.coding?.[0]?.code||'';
+      const date=(r.onsetDateTime||r.recordedDate||'').split('T')[0];
+      const status=r.clinicalStatus?.coding?.[0]?.code==='resolved'?'resolved':'active';
+      dx.push({id:uid(),name,code,date,status,source:'system'});
+      log.push('  ↳ Condition: '+name+' ['+code+'] ('+status+')');
+    }
+    if(opts.encounters && r.resourceType==='Encounter'){
+      const date=(r.period?.start||'').split('T')[0];
+      const type=r.type?.[0]?.text||'Visit';
+      const provider=r.participant?.[0]?.individual?.display||'';
+      const notes=r.reasonCode?.[0]?.text||'';
+      visit.push({id:uid(),date,type,provider,notes,source:'system'});
+      log.push('  ↳ Encounter: '+type+(date?' on '+date:''));
+    }
+    if(opts.coverage && r.resourceType==='Coverage'){
+      const name=r.payor?.[0]?.display||'Unknown insurer';
+      const status=r.status==='active'?'covered':'pending';
+      const date=(r.period?.start||'').split('T')[0];
+      ins.push({id:uid(),name,type:'Primary insurance',amount:r.subscriberId||'',status,date,source:'system'});
+      log.push('  ↳ Coverage: '+name);
+    }
+  }
+  return{info:p,med,dx,visit,ins,log};
+}
+
+function logLine(msg,color){
+  const el=document.getElementById('fhirLog');
+  const line=document.createElement('div');
+  line.style.color=color||'var(--text-secondary)';
+  line.textContent=msg;
+  el.appendChild(line);
+  el.scrollTop=el.scrollHeight;
+}
+
+async function runFhirImport(){
+  const btn=document.getElementById('fhirImportBtn');
+  btn.disabled=true; btn.textContent='Connecting…';
+  document.getElementById('fhirLogWrap').style.display='block';
+  document.getElementById('fhirLog').innerHTML='';
+  const ehr=document.getElementById('fhirEhrSelect').value;
+  const opts={
+    meds:document.getElementById('fhirMeds').checked,
+    conditions:document.getElementById('fhirConditions').checked,
+    encounters:document.getElementById('fhirEncounters').checked,
+    coverage:document.getElementById('fhirCoverage').checked
+  };
+
+  const steps=[
+    ()=>logLine('→ Discovering SMART configuration endpoint…'),
+    ()=>logLine('→ Requesting authorization from '+({epic:'Epic MyChart',cerner:'Oracle Cerner',generic:'FHIR R4 Server'}[ehr])+'…'),
+    ()=>logLine('→ Exchanging auth code for Bearer token (scope: patient/*.read)…'),
+    ()=>logLine('→ Token issued. Fetching FHIR R4 resources…'),
+  ];
+
+  for(const step of steps){
+    step();
+    await new Promise(r=>setTimeout(r,520));
+  }
+
+  const bundle=SAMPLE_FHIR_BUNDLE;
+  const result=parseFhirBundle(bundle,opts);
+  result.log.forEach(l=>logLine(l, l.startsWith('✓')?'var(--success)':'var(--text-secondary)'));
+
+  await new Promise(r=>setTimeout(r,400));
+
+  // Create new patient record from FHIR data
+  const newPt={
+    id:uid(),
+    info:{...result.info,provider:''},
+    med:result.med, dx:result.dx, visit:result.visit, ins:result.ins,
+    amendments:[]
+  };
+  patients.push(newPt);
+  activePatientId=newPt.id;
+  saveState();
+
+  logLine('✓ Import complete — '+result.med.length+' medications/allergies, '+result.dx.length+' conditions, '+result.visit.length+' encounters, '+result.ins.length+' coverage entries.','var(--success)');
+  btn.textContent='View record →';
+  btn.disabled=false;
+  btn.onclick=()=>{ closeFhirModal(); renderBanner(); ['med','dx','visit','ins'].forEach(renderSection); renderAmendments(); updateAmendmentBadge(); showScreen('screenRecord'); switchTab('clinician'); };
+}
+
+// ════════════════════════════════
+// SMART AUTH DEMO WALKTHROUGH
+// ════════════════════════════════
+let smartStep=0;
+const SMART_STEPS=[
+  {
+    title:'Step 1 of 5 — EHR app launch',
+    code:'GET /.well-known/smart-configuration',
+    resp:'{ "authorization_endpoint": "https://ehr.hospital.org/oauth2/authorize",\n  "token_endpoint": "https://ehr.hospital.org/oauth2/token",\n  "capabilities": ["launch-ehr","permission-patient"] }',
+    desc:'When a clinician opens the app from inside Epic or Cerner, the EHR sends a launch token and the app discovers the authorization server by fetching the SMART configuration endpoint. No credentials yet — just a handshake.'
+  },
+  {
+    title:'Step 2 of 5 — Authorization request',
+    code:'GET /oauth2/authorize\n  ?response_type=code\n  &client_id=unified-record-app\n  &scope=launch patient/*.read\n  &launch=eyJ0eXAiOiJ…\n  &redirect_uri=https://app.unifiedrecord.io/callback',
+    resp:'→ EHR redirects clinician to consent screen',
+    desc:'The app redirects the clinician to the EHR\'s login/consent screen. The "scope" parameter tells the EHR exactly what access is being requested — in this case, read access to all FHIR resources for this specific patient context.'
+  },
+  {
+    title:'Step 3 of 5 — Clinician approves',
+    code:'// Clinician sees and approves:\n// "Unified Record app requests access to:\n//  ✓ Read patient demographics\n//  ✓ Read medications & allergies\n//  ✓ Read diagnoses & conditions\n//  ✓ Read encounter history"',
+    resp:'→ EHR issues authorization code: ?code=SplxlOBeZQQYbYS6WxSbIA',
+    desc:'The clinician explicitly approves the access request. This is the SMART on FHIR answer to hospital IT security concerns — nothing happens without explicit human approval, scoped to exactly one patient and one session.'
+  },
+  {
+    title:'Step 4 of 5 — Token exchange',
+    code:'POST /oauth2/token\n  grant_type=authorization_code\n  &code=SplxlOBeZQQYbYS6WxSbIA\n  &redirect_uri=https://app.unifiedrecord.io/callback',
+    resp:'{ "access_token": "i8hweunweunefwe…",\n  "token_type": "Bearer",\n  "expires_in": 3600,\n  "patient": "Patient/87a339d0",\n  "scope": "patient/*.read" }',
+    desc:'The auth code is exchanged for a Bearer access token scoped to this patient and this session only. The token expires in 1 hour. This is the moment the app receives permission to call the FHIR API.'
+  },
+  {
+    title:'Step 5 of 5 — FHIR queries fired',
+    code:'GET /fhir/r4/MedicationRequest?patient=87a339d0\nAuthorization: Bearer i8hweunweunefwe…\n\nGET /fhir/r4/Condition?patient=87a339d0\nAuthorization: Bearer i8hweunweunefwe…\n\nGET /fhir/r4/Encounter?patient=87a339d0\nAuthorization: Bearer i8hweunweunefwe…',
+    resp:'→ FHIR R4 Bundle returned → parsed → unified view populated',
+    desc:'With the token in hand, the app fires parallel FHIR R4 queries for each resource type. The responses are parsed and mapped to the unified record format. From the clinician\'s perspective, the record just appeared — the whole auth flow was invisible.'
+  }
+];
+
+function openSmartDemo(){
+  smartStep=0;
+  renderSmartStep();
+  document.getElementById('smartOverlay').style.display='flex';
+}
+function closeSmartDemo(){
+  document.getElementById('smartOverlay').style.display='none';
+}
+function smartNav(dir){
+  smartStep=Math.max(0,Math.min(SMART_STEPS.length-1,smartStep+dir));
+  renderSmartStep();
+}
+function smartNextOrFinish(){if(smartStep===SMART_STEPS.length-1){closeSmartDemo();openFhirModal();}else{smartNav(1);}}
+
+// ════════════════════════════════
+// AI HANDOFF NOTE GENERATOR
+// ════════════════════════════════
+function openHandoffModal(){
+  const p=activePatient(); if(!p) return;
+  const name=[p.info.first,p.info.last].filter(Boolean).join(' ')||'Unnamed patient';
+  document.getElementById('handoffPatientName').textContent='Patient: '+name;
+  document.getElementById('handoffOutput').textContent='';
+  document.getElementById('handoffOutput').classList.remove('visible');
+  document.getElementById('handoffThinking').classList.remove('visible');
+  document.getElementById('btnCopyNote').classList.remove('visible');
+  document.getElementById('btnGenerate').disabled=false;
+  document.getElementById('btnGenerate').textContent='Generate note →';
+  document.getElementById('handoffApiKeyWrap').style.display='block';
+  document.getElementById('handoffModalWrap').classList.add('open');
+}
+function closeHandoffModal(){
+  document.getElementById('handoffModalWrap').classList.remove('open');
+}
+function copyHandoffNote(){
+  const text=document.getElementById('handoffOutput').textContent;
+  navigator.clipboard.writeText(text).then(()=>{
+    const btn=document.getElementById('btnCopyNote');
+    btn.textContent='Copied!'; setTimeout(()=>{btn.textContent='Copy to clipboard';},2000);
+  });
+}
+
+function buildHandoffContext(){
+  var p=activePatient(); if(!p) return '';
+  var inf=p.info;
+  var name=[inf.first,inf.last].filter(Boolean).join(' ')||'Unknown';
+  var dob=inf.dob?formatDate(inf.dob):'unknown';
+  var age=inf.dob?calcAge(inf.dob)+' years old':'age unknown';
+  var incMeds=document.getElementById('hoMeds').checked;
+  var incDx=document.getElementById('hoDx').checked;
+  var incVisits=document.getElementById('hoVisits').checked;
+  var incAmds=document.getElementById('hoAmendments').checked;
+  var incIns=document.getElementById('hoIns').checked;
+  var NL='\n';
+  var ctx='PATIENT: '+name+NL+'DOB: '+dob+' ('+age+')'+NL+'Sex: '+(inf.sex||'not recorded')+NL+'Blood type: '+(inf.blood||'not recorded')+NL+'MRN: '+(inf.mrn||'not recorded')+NL+'Primary provider: '+(inf.provider||'not assigned')+NL;
+  if(incMeds&&p.med.length){
+    var meds=p.med.filter(function(m){return m.type==='Medication';});
+    var allg=p.med.filter(function(m){return m.type==='Allergy';});
+    if(meds.length){ctx+=NL+'ACTIVE MEDICATIONS:'+NL;meds.forEach(function(m){ctx+='- '+m.name+(m.dose?' ('+m.dose+')':'')+' [source: '+m.source+']'+NL;});}
+    if(allg.length){ctx+=NL+'ALLERGIES:'+NL;allg.forEach(function(a){ctx+='- '+a.name+(a.severity?' severity: '+a.severity:'')+' [source: '+a.source+']'+NL;});}
+  }
+  if(incDx&&p.dx.length){
+    var act=p.dx.filter(function(d){return d.status==='active';});
+    var res=p.dx.filter(function(d){return d.status==='resolved';});
+    if(act.length){ctx+=NL+'ACTIVE CONDITIONS:'+NL;act.forEach(function(d){ctx+='- '+d.name+(d.code?' ['+d.code+']':'')+NL;});}
+    if(res.length){ctx+=NL+'PAST HISTORY:'+NL;res.forEach(function(d){ctx+='- '+d.name+NL;});}
+  }
+  if(incVisits&&p.visit.length){
+    ctx+=NL+'RECENT VISITS:'+NL;
+    p.visit.slice(0,3).forEach(function(v){
+      ctx+='- '+(v.date?formatDate(v.date):'no date')+': '+v.type+(v.provider?' with '+v.provider:'')+NL;
+      if(v.notes)ctx+='  Notes: '+v.notes.substring(0,300)+NL;
+    });
+  }
+  if(incAmds){
+    var open=p.amendments.filter(function(a){return a.status==='open';});
+    if(open.length){ctx+=NL+'OPEN AMENDMENTS:'+NL;open.forEach(function(a){ctx+='- '+a.before.name+' proposed as: '+a.after.name+'. Reason: '+a.reason+NL;});}
+  }
+  if(incIns&&p.ins.length){ctx+=NL+'INSURANCE:'+NL;p.ins.forEach(function(ins){ctx+='- '+ins.name+' ['+ins.type+', '+ins.status+']'+NL;});}
+  return ctx;
+}
+
+async function generateHandoffNote(){
+  const p=activePatient(); if(!p) return;
+  const btn=document.getElementById('btnGenerate');
+  btn.disabled=true; btn.textContent='Generating…';
+  document.getElementById('handoffThinking').classList.add('visible');
+  document.getElementById('handoffOutput').classList.remove('visible');
+  document.getElementById('btnCopyNote').classList.remove('visible');
+
+  const context=buildHandoffContext();
+  const name=[p.info.first,p.info.last].filter(Boolean).join(' ')||'this patient';
+
+  const prompt=`You are a clinical documentation assistant. A provider is transferring care for ${name} to a new care team and needs a structured handoff note.
+
+Here is the complete patient record:
+
+${context}
+
+Write a clear, professional clinical handoff note that:
+1. Opens with a one-sentence patient summary (name, age, key diagnoses)
+2. Lists active medications with doses, flagging any high-severity allergies prominently
+3. Summarizes active conditions with clinical context
+4. Summarizes the most recent 1-3 visits with key findings
+5. Flags any open data disputes or amendments that the receiving provider should be aware of
+6. Closes with a short "Key concerns for receiving provider" section
+
+Use standard clinical language. Be concise but complete. Format with clear section headers using ALL CAPS. Do not include information not present in the record. If data is missing, note it briefly rather than inventing it.`;
+
+  try{
+    const apiKey=(document.getElementById('handoffApiKey').value||'').trim();
+    if(!apiKey){
+      document.getElementById('handoffThinking').classList.remove('visible');
+      document.getElementById('handoffOutput').textContent='Please enter your Anthropic API key above to use this feature.';
+      document.getElementById('handoffOutput').classList.add('visible');
+      btn.textContent='Generate note →'; btn.disabled=false;
+      return;
+    }
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:1000,
+        messages:[{role:'user',content:prompt}]
+      })
+    });
+    const data=await resp.json();
+    const text=(data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('');
+    document.getElementById('handoffOutput').textContent=text||'No response received.';
+    document.getElementById('handoffOutput').classList.add('visible');
+    document.getElementById('btnCopyNote').classList.add('visible');
+    document.getElementById('handoffApiKeyWrap').style.display='none';
+    btn.textContent='Regenerate';
+    btn.disabled=false;
+  }catch(err){
+    document.getElementById('handoffOutput').textContent='Error connecting to AI: '+err.message+' — This feature requires an internet connection.';
+    document.getElementById('handoffOutput').classList.add('visible');
+    btn.textContent='Retry';
+    btn.disabled=false;
+  }
+  document.getElementById('handoffThinking').classList.remove('visible');
+}
+
+function renderSmartStep(){
+  const s=SMART_STEPS[smartStep];
+  document.getElementById('smartTitle').textContent=s.title;
+  document.getElementById('smartCode').textContent=s.code;
+  document.getElementById('smartResp').textContent=s.resp;
+  document.getElementById('smartDesc').textContent=s.desc;
+  document.getElementById('smartPrev').disabled=smartStep===0;
+  document.getElementById('smartNext').textContent=smartStep===SMART_STEPS.length-1?'Try FHIR import →':'Next →';
+  // progress dots
+  const dots=document.getElementById('smartDots');
+  dots.innerHTML=SMART_STEPS.map((_,i)=>`<span style="width:8px;height:8px;border-radius:50%;background:${i===smartStep?'var(--accent-mid)':'var(--border-strong)'};display:inline-block;transition:background .2s;"></span>`).join('');
+}
 </script>
+
+<!-- FHIR Import Modal -->
+<div class="drawer-overlay" id="fhirOverlay" onclick="closeFhirModal()"></div>
+<div class="drawer" id="fhirModal" style="width:540px;">
+  <div class="drawer-header">
+    <div>
+      <h3>Import FHIR record</h3>
+      <p id="fhirModalSubtitle">Simulates a SMART on FHIR data pull from an EHR system</p>
+    </div>
+    <button class="drawer-close" onclick="closeFhirModal()">×</button>
+  </div>
+  <div class="drawer-body" style="display:flex;flex-direction:column;gap:14px;">
+
+    <div style="background:var(--accent-light);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-size:13px;color:var(--text-secondary);line-height:1.6;">
+      <strong style="color:var(--accent-mid);display:block;margin-bottom:4px;">About this simulation</strong>
+      In production, clicking "Connect &amp; import" would trigger a SMART on FHIR OAuth handshake with the selected EHR, obtain a Bearer token scoped to this patient, and fetch FHIR R4 resources. Here, it loads a realistic FHIR Bundle to demonstrate the data flow.
+    </div>
+
+    <div class="drawer-field">
+      <label>EHR system (simulated)</label>
+      <select id="fhirEhrSelect">
+        <option value="epic">Epic MyChart — Riverside Family Health</option>
+        <option value="cerner">Oracle Cerner — St. Augustine Medical</option>
+        <option value="generic">Generic FHIR R4 server</option>
+      </select>
+    </div>
+
+    <div class="drawer-field">
+      <label>FHIR resource types to import</label>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px;">
+        <label style="display:flex;align-items:center;gap:8px;font-size:14px;font-weight:400;text-transform:none;letter-spacing:0;cursor:pointer;">
+          <input type="checkbox" id="fhirMeds" checked style="width:16px;height:16px;"> MedicationRequest &amp; AllergyIntolerance
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:14px;font-weight:400;text-transform:none;letter-spacing:0;cursor:pointer;">
+          <input type="checkbox" id="fhirConditions" checked style="width:16px;height:16px;"> Condition (diagnoses)
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:14px;font-weight:400;text-transform:none;letter-spacing:0;cursor:pointer;">
+          <input type="checkbox" id="fhirEncounters" checked style="width:16px;height:16px;"> Encounter (visit history)
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:14px;font-weight:400;text-transform:none;letter-spacing:0;cursor:pointer;">
+          <input type="checkbox" id="fhirCoverage" checked style="width:16px;height:16px;"> Coverage (insurance)
+        </label>
+      </div>
+    </div>
+
+    <div id="fhirLogWrap" style="display:none;">
+      <div style="font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;">Import log</div>
+      <div id="fhirLog" style="font-family:var(--mono);font-size:12px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;max-height:180px;overflow-y:auto;line-height:1.8;color:var(--text-secondary);"></div>
+    </div>
+
+  </div>
+  <div class="drawer-footer">
+    <button class="btn-drawer-cancel" onclick="closeFhirModal()">Cancel</button>
+    <button class="btn-propose-submit" id="fhirImportBtn" style="background:var(--accent);" onclick="runFhirImport()">Connect &amp; import →</button>
+  </div>
+</div>
+
+
+<!-- SMART Auth Demo Overlay -->
+<div id="smartOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:400;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:var(--surface);border-radius:12px;width:100%;max-width:680px;max-height:90vh;overflow-y:auto;display:flex;flex-direction:column;">
+    <div style="padding:20px 24px 16px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;">
+      <div>
+        <div style="font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-mid);margin-bottom:4px;">SMART on FHIR — Authorization walkthrough</div>
+        <h3 id="smartTitle" style="font-size:17px;font-weight:600;"></h3>
+      </div>
+      <button onclick="closeSmartDemo()" style="background:none;border:none;cursor:pointer;font-size:22px;color:var(--text-muted);line-height:1;padding:0 4px;">×</button>
+    </div>
+    <div style="padding:20px 24px;flex:1;">
+      <div style="margin-bottom:16px;">
+        <div style="font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;">Request</div>
+        <pre id="smartCode" style="font-family:var(--mono);font-size:12px;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:12px 14px;overflow-x:auto;white-space:pre-wrap;line-height:1.7;color:var(--accent-mid);"></pre>
+      </div>
+      <div style="margin-bottom:16px;">
+        <div style="font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;">Response / result</div>
+        <pre id="smartResp" style="font-family:var(--mono);font-size:12px;background:var(--success-light);border:1px solid var(--border);border-radius:6px;padding:12px 14px;overflow-x:auto;white-space:pre-wrap;line-height:1.7;color:var(--success);"></pre>
+      </div>
+      <div style="background:var(--accent-light);border-radius:6px;padding:12px 14px;font-size:14px;color:var(--text-secondary);line-height:1.6;" id="smartDesc"></div>
+    </div>
+    <div style="padding:16px 24px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+      <div id="smartDots" style="display:flex;gap:6px;align-items:center;"></div>
+      <div style="display:flex;gap:10px;">
+        <button id="smartPrev" onclick="smartNav(-1)" style="font-family:var(--sans);font-size:13px;padding:8px 16px;background:transparent;color:var(--text-secondary);border:1px solid var(--border-strong);border-radius:6px;cursor:pointer;">← Back</button>
+        <button id="smartNext" onclick="smartNextOrFinish()" style="font-family:var(--sans);font-size:13px;font-weight:600;padding:8px 20px;background:var(--accent);color:white;border:none;border-radius:6px;cursor:pointer;">Next →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- AI Handoff Note Modal -->
+<div class="handoff-modal-wrap" id="handoffModalWrap">
+  <div class="handoff-modal">
+    <div class="handoff-header">
+      <div>
+        <h3>✦ AI clinical handoff note</h3>
+        <p id="handoffPatientName">Generating note for —</p>
+      </div>
+      <button onclick="closeHandoffModal()" style="background:none;border:none;cursor:pointer;font-size:20px;color:var(--text-muted);line-height:1;padding:0 4px;">×</button>
+    </div>
+    <div class="handoff-body">
+      <div style="background:var(--accent-light);border-radius:var(--radius);padding:12px 14px;font-size:13px;color:var(--text-secondary);line-height:1.5;">
+        Claude reads the full patient record and generates a structured clinical handoff note — the kind a provider would write when transferring care. Review before use.
+      </div>
+      <div class="handoff-options">
+        <label><input type="checkbox" id="hoMeds" checked> Medications &amp; allergies</label>
+        <label><input type="checkbox" id="hoDx" checked> Diagnoses</label>
+        <label><input type="checkbox" id="hoVisits" checked> Recent visits</label>
+        <label><input type="checkbox" id="hoAmendments" checked> Open amendments</label>
+        <label><input type="checkbox" id="hoIns"> Insurance &amp; billing</label>
+      </div>
+
+      <div id="handoffApiKeyWrap" style="background:var(--warning-light);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;">
+        <div style="font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--warning);margin-bottom:6px;">Anthropic API key required</div>
+        <div style="font-size:12px;color:var(--text-secondary);margin-bottom:8px;line-height:1.5;">Get your key at <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:var(--accent-mid);">console.anthropic.com</a>. It is only stored in memory and never saved or transmitted anywhere except the Anthropic API.</div>
+        <input id="handoffApiKey" type="password" placeholder="sk-ant-..." autocomplete="off"
+          style="font-family:var(--mono);font-size:13px;padding:8px 11px;border:1px solid var(--border-strong);border-radius:var(--radius);background:var(--surface);color:var(--text-primary);width:100%;outline:none;">
+      </div>
+
+      <div class="handoff-thinking" id="handoffThinking">
+        <div class="thinking-dots"><span></span><span></span><span></span></div>
+        <span>Claude is reading the record and composing the handoff note…</span>
+      </div>
+      <div class="handoff-output" id="handoffOutput"></div>
+    </div>
+    <div class="handoff-footer">
+      <button class="btn-copy-note" id="btnCopyNote" onclick="copyHandoffNote()">Copy to clipboard</button>
+      <button onclick="closeHandoffModal()" style="font-family:var(--sans);font-size:13px;padding:9px 14px;background:transparent;color:var(--text-secondary);border:1px solid var(--border-strong);border-radius:var(--radius);cursor:pointer;">Close</button>
+      <button class="btn-generate" id="btnGenerate" onclick="generateHandoffNote()">Generate note →</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
